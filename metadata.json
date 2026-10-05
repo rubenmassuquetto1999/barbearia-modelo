@@ -1,0 +1,8 @@
+{
+  "name": "Barbearia — Painel & Vitrine",
+  "description": "Sistema completo de painel de controle, agenda, relatórios de faturamento e vitrine de agendamentos para barbearia.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

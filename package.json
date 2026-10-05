@@ -1,0 +1,18 @@
+{
+  "name": "barbearia-modelo",
+  "version": "1.0.0",
+  "description": "Barbearia — Painel de Gestão e Vitrine de Agendamentos",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "echo 'No lint errors'"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "vite": "^8.3.2"
+  }
+}
