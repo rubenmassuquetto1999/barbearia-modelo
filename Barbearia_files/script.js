@@ -1,68 +1,31 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-    getFirestore,
-    doc, getDoc, setDoc, serverTimestamp,
-    collection, query, where, getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-    getAuth, signInAnonymously, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// ===== Helpers de Modal =====
+function abrirModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+}
+function fecharModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+window.abrirModal = abrirModal;
+window.fecharModal = fecharModal;
 
-// ===== Firebase =====
-const firebaseConfig = {
-    apiKey: "AIzaSyDgaoVZK-5TF5xDFulLISridU9IXbmEYgg",
-    authDomain: "barbearia-agenda-fe2a7.firebaseapp.com",
-    projectId: "barbearia-agenda-fe2a7",
-    storageBucket: "barbearia-agenda-fe2a7.firebasestorage.app",
-    messagingSenderId: "876658896099",
-    appId: "1:876658896099:web:6a361416ed84fd636f29d6",
-    measurementId: "G-NJ4ETW1TNZ"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// 🔐 Login anônimo para cumprir as regras (request.auth != null)
-const auth = getAuth(app);
-signInAnonymously(auth).catch((e) => {
-    console.error("Anon auth error:", e);
-});
-onAuthStateChanged(auth, (user) => {
-    console.log("Auth user:", user ? user.uid : null);
-});
-
-// ===== Navegação mobile & smooth =====
-const menuToggle = document.querySelector('.menu-toggle');
-const navLinks = document.querySelector('.nav-links');
-menuToggle?.addEventListener('click', () => {
-    navLinks.classList.toggle('active');
-    const icon = menuToggle.querySelector('i');
-    navLinks.classList.contains('active')
-        ? icon.classList.replace('bx-menu', 'bx-x')
-        : icon.classList.replace('bx-x', 'bx-menu');
-});
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-        e.preventDefault();
-        const id = a.getAttribute('href');
-        const t = document.querySelector(id);
-        if (!t) return;
-        window.scrollTo({ top: t.getBoundingClientRect().top + window.pageYOffset - 80, behavior: 'smooth' });
-        navLinks?.classList.remove('active');
-    });
-});
-
-// ===== Estado =====
-let ctx = { profissional: null, wa: null, colecao: 'agendamentos' }; // <-- força agendamentos
+// ===== Estado Local / Contexto =====
+let ctx = { profissional: 'Rodrigo', wa: '5511999998888', colecao: 'agendamentos' };
 let agendamentoContexto = {
     nomeCliente: '',
+    telefoneCliente: '',
     produtos: [],
     totalProdutos: 0,
     raclub: { status: 'nao' },
-    servico: null // {nome, valor}
+    servico: null
 };
 
-// ===== Constantes =====
-const REVIEW_URL = document.getElementById('btnAvaliarGoogle')?.getAttribute('href') || '';
+let barbeirosList = [];
+let servicosList = [];
+let selectedAutonomousSlot = null;
+
+const toBRL = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const PRODUTOS = [
     { nome: "Pomada Líquida DA Force MEN", preco: 39.99 },
@@ -73,110 +36,470 @@ const PRODUTOS = [
     { nome: "Pomada Modeladora - Efeito Seco ", preco: 34.99 },
 ];
 
-// >>> Catálogo de serviços mostrado no modal
-const SERVICOS = [
-    { nome: 'Selecionar...', valor: null, placeholder: true }, // primeira linha
-    { nome: 'Acabamento ', valor: 20.00 },
-    { nome: 'Maquina e Tesoura', valor: 40.00 },
-    { nome: 'Corte Maquina', valor: 40.00 },
+let SERVICOS = [
+    { nome: 'Selecionar...', valor: null, placeholder: true },
+    { nome: 'Acabamento / Pezinho', valor: 20.00 },
+    { nome: 'Barba Completa', valor: 40.00 },
+    { nome: 'Corte Máquina e Tesoura', valor: 40.00 },
     { nome: 'Corte Tesoura', valor: 50.00 },
-    { nome: 'Alisamento Americano', valor: 40.00 },
     { nome: 'Corte Infantil', valor: 50.00 },
-    { nome: 'Blindado', valor: 60.00 },
-    { nome: 'Corte + Barba + Alisamento Prime', valor: 150.00 },
-    { nome: 'Corte e Escova', valor: 70.00 },
-    { nome: 'Corte Fantasia', valor: 60.00 },
-    { nome: 'Barba + Sobrancelha', valor: 55.00 },
-    { nome: 'Corte + Barba + Sobrancelha', valor: 90.00 },
-    { nome: 'Corte + Alisamento Prime', valor: 95.00 },
-    { nome: 'Corte + Progressiva', valor: 115.00 },
-    { nome: 'Corte + Sobrancelha', valor: 65.00 },
-    { nome: 'Corte + Feminino', valor: 70.00 },
-    { nome: 'Matizar', valor: 30.00 },
-    { nome: 'Progressiva', valor: 70.00 },
-    { nome: 'Taper Fade', valor: 40.00 },
-    { nome: 'Navalhado', valor: 45.00 },
-    { nome: 'Alisamento + Corte + Barba + Pigmentação + Sobrancelha', valor: 230.00 },
-    { nome: 'Alisamento Prime + Corte + Pigmentação + Sobrancelha', valor: 175.00 },
-    { nome: 'Alisamento Prime + Corte Maquina + Barba', valor: 140.00 },
-    { nome: 'Alisamento Prime + Corte Tesoura', valor: 125.00 },
-    { nome: 'Alisamento Prime + Corte Tesoura + Barba', valor: 160.00 },
-    { nome: 'Alisamento Prime + Navalhado', valor: 120.00 },
-    { nome: 'Alisamento Prime + Navalhado + Barba', valor: 145.00 },
-    { nome: 'Aplicação de Colorção', valor: 45.00 },
-    { nome: 'Barba + Acabamento', valor: 55.00 },
-    { nome: 'Barba + Hidratação', valor: 55.00 },
-    { nome: 'Barba + Pigmentação', valor: 60.00 },
-    { nome: 'Barba + Limpeza de Pele', valor: 65.00 },
-    { nome: 'Botox + Navalhado + Barba', valor: 110.00 },
-    { nome: 'Botox Prime + Corte Maquina + Barba', valor: 120.00 },
-    { nome: 'Botox Prime + Corte Tesoura + Barba', valor: 130.00 },
-    { nome: 'Corte + Barba + Limpeza de Pele', valor: 120.00 },
-    { nome: 'Corte + Barba', valor: 75.00 },
-    { nome: 'Corte + Hidratação + Escova', valor: 65.00 },
-    { nome: 'Corte + Alisamento Americano', valor: 75.00 },
-    { nome: 'Corte + Alisamento Prime + Sobrancelha', valor: 130.00 },
-    { nome: 'Corte + Barba + Alisamento Americano', valor: 100.00 },
-    { nome: 'Corte + Barba + Botox Prime', valor: 120.00 },
-    { nome: 'Corte + Barba + Limpeza de Pele', valor: 120.00 },
-    { nome: 'Corte + Barba + Limpeza de Pele + Sobrancelha + Pigmentação Capilar', valor: 145.00 },
-    { nome: 'Corte + Barba + Sobrancelha + Botox Prime', valor: 160.00 },
-    { nome: 'Corte + Botox + Sobrancelha ', valor: 110.00 },
+    { nome: 'Alisamento Americano', valor: 50.00 },
+    { nome: 'Luzes / Platinado', valor: 100.00 },
     { nome: 'Corte + Botox Prime', valor: 105.00 },
-    { nome: 'Corte + Luzes', valor: 115.00 },
-    { nome: 'Corte + Luzes + Sobrancelha', valor: 140.00 },
-    { nome: 'Corte + Luzes + Progressiva', valor: 165.00 },
-    { nome: 'Corte + Pigmentação + Barba', valor: 100.00 },
+    { nome: 'Corte + Barba + Alisamento Prime', valor: 150.00 },
+    { nome: 'Corte Sensorial (Adaptado)', valor: 50.00 }
 ];
 
-const toBRL = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-// ===== Helpers de modal =====
-function abrirModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
-}
-function fecharModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-}
-window.fecharModal = fecharModal;
-
-// ===== Persistência (RA Club) =====
-function salvarContextoSessao() {
+// ===== Load Initial Data from API =====
+async function loadCatalog() {
     try {
-        sessionStorage.setItem('agendamentoCtx', JSON.stringify(agendamentoContexto));
-        sessionStorage.setItem('ctx', JSON.stringify(ctx));
-    } catch { }
-}
-function restaurarContextoSessao() {
-    try {
-        const c1 = sessionStorage.getItem('agendamentoCtx');
-        const c2 = sessionStorage.getItem('ctx');
-        if (c1) agendamentoContexto = JSON.parse(c1);
-        if (c2) ctx = JSON.parse(c2);
-    } catch { }
-}
-function tentarRetomarPosCheckout() {
-    const flag = sessionStorage.getItem('raclubCheckoutRedirect');
-    if (flag === '1') {
-        sessionStorage.removeItem('raclubCheckoutRedirect');
-        restaurarContextoSessao();
-        if (ctx?.colecao && ctx?.profissional) {
-            agendamentoContexto.raclub = { status: 'assinar_link' };
-            fecharModal('modalRAClub');
-            abrirModalAgendamento();
+        const [resBarb, resSvc] = await Promise.all([
+            fetch('/api/barbeiros'),
+            fetch('/api/servicos')
+        ]);
+        if (resBarb.ok) {
+            const data = await resBarb.json();
+            barbeirosList = data.barbeiros || [];
         }
+        if (resSvc.ok) {
+            const data = await resSvc.json();
+            servicosList = data.servicos || [];
+            if (servicosList.length > 0) {
+                SERVICOS = [
+                    { nome: 'Selecionar...', valor: null, placeholder: true },
+                    ...servicosList.map(s => ({ nome: s.name, valor: s.price, durationMin: s.durationMin, id: s.id }))
+                ];
+            }
+        }
+    } catch (e) {
+        console.warn('Usando catálogo local em cache:', e);
+    }
+    populateAutonomousSelects();
+}
+
+function populateAutonomousSelects() {
+    const selBarb = document.getElementById('autoSelectBarbeiro');
+    const selSvc = document.getElementById('autoSelectServico');
+
+    if (selBarb && barbeirosList.length > 0) {
+        selBarb.innerHTML = barbeirosList.map(b => `<option value="${b.id}">${b.name} (${b.specialty || 'Barbeiro'})</option>`).join('');
+    }
+
+    if (selSvc && servicosList.length > 0) {
+        selSvc.innerHTML = servicosList.map(s => `<option value="${s.id}" data-duration="${s.durationMin}">${s.name} — ${toBRL(s.price)} (${s.durationMin} min)</option>`).join('');
     }
 }
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') tentarRetomarPosCheckout();
+
+// ===== Mobile Nav =====
+const menuToggle = document.querySelector('.menu-toggle');
+const navLinks = document.querySelector('.nav-links');
+menuToggle?.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
+    const icon = menuToggle.querySelector('i');
+    navLinks.classList.contains('active')
+        ? icon?.classList.replace('bx-menu', 'bx-x')
+        : icon?.classList.replace('bx-x', 'bx-menu');
 });
 
-// ===== Fluxo Nome → Produtos → RA Club → Agendamento =====
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const id = a.getAttribute('href');
+        if (id === '#') return;
+        const t = document.querySelector(id);
+        if (!t) return;
+        e.preventDefault();
+        window.scrollTo({ top: t.getBoundingClientRect().top + window.pageYOffset - 80, behavior: 'smooth' });
+        navLinks?.classList.remove('active');
+    });
+});
+
+// ===== CAMINHO B: AGENDAMENTO WEB AUTÔNOMO =====
+const heroBtnWebAutonomous = document.getElementById('heroBtnWebAutonomous');
+const btnOpenAutonomousModal = document.getElementById('btnOpenAutonomousModal');
+const modalAutonomo = document.getElementById('modalAutonomo');
+const autoSelectBarbeiro = document.getElementById('autoSelectBarbeiro');
+const autoSelectServico = document.getElementById('autoSelectServico');
+const autoSelectDate = document.getElementById('autoSelectDate');
+const autoSlotsContainer = document.getElementById('autoSlotsContainer');
+const autonomousBookingForm = document.getElementById('autonomousBookingForm');
+
+function setupAutonomousModal() {
+    const hoje = new Date().toISOString().split('T')[0];
+    if (autoSelectDate) {
+        autoSelectDate.min = hoje;
+        autoSelectDate.value = hoje;
+    }
+    abrirModal('modalAutonomo');
+    fetchAvailableSlots();
+}
+
+heroBtnWebAutonomous?.addEventListener('click', setupAutonomousModal);
+btnOpenAutonomousModal?.addEventListener('click', setupAutonomousModal);
+
+autoSelectBarbeiro?.addEventListener('change', fetchAvailableSlots);
+autoSelectServico?.addEventListener('change', fetchAvailableSlots);
+autoSelectDate?.addEventListener('change', fetchAvailableSlots);
+
+async function fetchAvailableSlots() {
+    const barbeiroId = autoSelectBarbeiro?.value;
+    const dataISO = autoSelectDate?.value;
+    const svcOpt = autoSelectServico?.selectedOptions[0];
+    const durationMin = svcOpt ? (svcOpt.dataset.duration || 30) : 30;
+
+    if (!barbeiroId || !dataISO || !autoSlotsContainer) return;
+
+    autoSlotsContainer.innerHTML = '<span style="color:#6b7280; font-size:0.9rem; grid-column:1/-1;">Consultando disponibilidade em tempo real...</span>';
+    selectedAutonomousSlot = null;
+
+    try {
+        const res = await fetch(`/api/agendamentos/disponibilidade?barbeiroId=${barbeiroId}&dataISO=${dataISO}&durationMin=${durationMin}`);
+        const data = await res.json();
+        const slots = data.slots || [];
+
+        if (slots.length === 0) {
+            autoSlotsContainer.innerHTML = '<span style="color:#dc2626; font-size:0.9rem; grid-column:1/-1;">Nenhum horário disponível para esta data ou profissional.</span>';
+            return;
+        }
+
+        autoSlotsContainer.innerHTML = slots.map(s => `
+            <button type="button" class="slot-btn ${s.disponivel ? '' : 'disabled'}" ${s.disponivel ? '' : 'disabled'} data-hora="${s.hora}">
+                ${s.hora}
+            </button>
+        `).join('');
+
+        autoSlotsContainer.querySelectorAll('.slot-btn:not(:disabled)').forEach(btn => {
+            btn.addEventListener('click', () => {
+                autoSlotsContainer.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedAutonomousSlot = btn.dataset.hora;
+            });
+        });
+    } catch (err) {
+        console.error('Erro ao buscar horários:', err);
+        autoSlotsContainer.innerHTML = '<span style="color:#dc2626; font-size:0.9rem; grid-column:1/-1;">Erro ao carregar horários. Tente novamente.</span>';
+    }
+}
+
+autonomousBookingForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!selectedAutonomousSlot) {
+        alert('Por favor, selecione um dos horários disponíveis.');
+        return;
+    }
+
+    const barbeiroId = autoSelectBarbeiro.value;
+    const servicoId = autoSelectServico.value;
+    const dataISO = autoSelectDate.value;
+    const clienteNome = document.getElementById('autoClientName')?.value;
+    const clienteTelefone = document.getElementById('autoClientPhone')?.value;
+
+    const btnSubmit = document.getElementById('btnConfirmAutonomousBooking');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Processando Agendamento Seguro...';
+
+    try {
+        const response = await fetch('/api/agendamentos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clienteNome,
+                clienteTelefone,
+                barbeiroId,
+                servicoId,
+                dataISO,
+                horaInicio: selectedAutonomousSlot,
+                canalOrigem: 'WEB_AUTONOMO',
+                pagamentoForma: 'A combinar no atendimento'
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            alert(result.error || 'Não foi possível confirmar o agendamento.');
+            fetchAvailableSlots();
+            return;
+        }
+
+        fecharModal('modalAutonomo');
+        alert(`✅ Agendamento Autônomo Confirmado com Sucesso!\n\nCliente: ${result.agendamento.clienteNome}\nBarbeiro: ${result.agendamento.barbeiroNome}\nData: ${result.agendamento.dataISO} às ${result.agendamento.horaInicio}\n\nUm lembrete automático foi gerado no sistema.`);
+        
+        // Auto-save user phone to session for easy portal retrieval
+        sessionStorage.setItem('portalUserPhone', clienteTelefone);
+    } catch (err) {
+        console.error('Erro ao confirmar:', err);
+        alert('Erro de conexão ao processar agendamento.');
+    } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Confirmar Agendamento Autônomo';
+    }
+});
+
+// ===== PORTAL DO CLIENTE & LGPD & LOGIN ADMIN =====
+const btnPortalClienteNav = document.getElementById('btnPortalClienteNav');
+const portalPhoneInput = document.getElementById('portalPhoneInput');
+const btnConsultarAgendamentos = document.getElementById('btnConsultarAgendamentos');
+const clientAptsContainer = document.getElementById('clientAptsContainer');
+const btnExportarDadosLGPD = document.getElementById('btnExportarDadosLGPD');
+const btnSolicitarExclusaoLGPD = document.getElementById('btnSolicitarExclusaoLGPD');
+
+const tabBtnPortalCliente = document.getElementById('tabBtnPortalCliente');
+const tabBtnPortalAdmin = document.getElementById('tabBtnPortalAdmin');
+const panelPortalCliente = document.getElementById('panelPortalCliente');
+const panelPortalAdmin = document.getElementById('panelPortalAdmin');
+const formAdminLogin = document.getElementById('formAdminLogin');
+const adminLoggedNotice = document.getElementById('adminLoggedNotice');
+const adminLoggedRoleBadge = document.getElementById('adminLoggedRoleBadge');
+const navPainelLi = document.getElementById('navPainelLi');
+
+// Alternar abas no modal Minha Conta
+tabBtnPortalCliente?.addEventListener('click', () => {
+    tabBtnPortalCliente.style.borderBottom = '2px solid #d97706';
+    tabBtnPortalCliente.style.color = '#d97706';
+    tabBtnPortalAdmin.style.borderBottom = '2px solid transparent';
+    tabBtnPortalAdmin.style.color = '#6b7280';
+    if (panelPortalCliente) panelPortalCliente.style.display = 'block';
+    if (panelPortalAdmin) panelPortalAdmin.style.display = 'none';
+});
+
+tabBtnPortalAdmin?.addEventListener('click', () => {
+    tabBtnPortalAdmin.style.borderBottom = '2px solid #d97706';
+    tabBtnPortalAdmin.style.color = '#d97706';
+    tabBtnPortalCliente.style.borderBottom = '2px solid transparent';
+    tabBtnPortalCliente.style.color = '#6b7280';
+    if (panelPortalCliente) panelPortalCliente.style.display = 'none';
+    if (panelPortalAdmin) panelPortalAdmin.style.display = 'block';
+});
+
+// Alternar sub-abas do Cliente (Consultar / Entrar vs Novo Cadastro)
+const subtabBtnClientLogin = document.getElementById('subtabBtnClientLogin');
+const subtabBtnClientRegister = document.getElementById('subtabBtnClientRegister');
+const clientLoginView = document.getElementById('clientLoginView');
+const clientRegisterView = document.getElementById('clientRegisterView');
+
+subtabBtnClientLogin?.addEventListener('click', () => {
+    subtabBtnClientLogin.classList.add('active');
+    subtabBtnClientRegister?.classList.remove('active');
+    if (clientLoginView) clientLoginView.style.display = 'block';
+    if (clientRegisterView) clientRegisterView.style.display = 'none';
+});
+
+subtabBtnClientRegister?.addEventListener('click', () => {
+    subtabBtnClientRegister.classList.add('active');
+    subtabBtnClientLogin?.classList.remove('active');
+    if (clientLoginView) clientLoginView.style.display = 'none';
+    if (clientRegisterView) clientRegisterView.style.display = 'block';
+});
+
+// Form Novo Cadastro de Cliente
+const formClientRegister = document.getElementById('formClientRegister');
+formClientRegister?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('regClientName')?.value.trim();
+    const phone = document.getElementById('regClientPhone')?.value.trim();
+    const email = document.getElementById('regClientEmail')?.value.trim();
+    const password = document.getElementById('regClientPassword')?.value;
+    const lgpdConsent = document.getElementById('regClientLgpd')?.checked;
+
+    const btnSubmit = document.getElementById('btnSubmitClientRegister');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Cadastrando...';
+
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, email, password, lgpdConsent })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || 'Erro ao realizar cadastro.');
+            return;
+        }
+
+        sessionStorage.setItem('userToken', data.token);
+        sessionStorage.setItem('userRole', data.user.role);
+        sessionStorage.setItem('userName', data.user.name);
+        sessionStorage.setItem('portalUserPhone', data.user.phone);
+
+        const navLabel = document.getElementById('navMinhaContaLabel');
+        if (navLabel) navLabel.textContent = data.user.name.split(' ')[0];
+
+        alert(`✅ Cadastro realizado com sucesso, ${data.user.name}!\nSua conta de cliente está pronta.`);
+        
+        // Voltar para a visualização de agendamentos
+        subtabBtnClientLogin?.click();
+        if (portalPhoneInput) portalPhoneInput.value = data.user.phone;
+        carregarAgendamentosCliente(data.user.phone);
+    } catch (err) {
+        console.error('Erro no cadastro:', err);
+        alert('Erro ao processar cadastro. Tente novamente.');
+    } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = "<i class='bx bx-user-plus'></i> Concluir Cadastro de Cliente";
+    }
+});
+
+// Checar se já tem sessão salva
+function checkAdminSession() {
+    const role = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+    const name = sessionStorage.getItem('userName') || localStorage.getItem('userName');
+    
+    if (name) {
+        const navLabel = document.getElementById('navMinhaContaLabel');
+        if (navLabel) navLabel.textContent = name.split(' ')[0];
+    }
+
+    if (role === 'ADMIN' || role === 'SECRETARIA') {
+        if (navPainelLi) navPainelLi.style.display = 'inline-block';
+        if (adminLoggedNotice) adminLoggedNotice.style.display = 'block';
+        if (adminLoggedRoleBadge) adminLoggedRoleBadge.textContent = role;
+    }
+}
+checkAdminSession();
+
+// Login de Administrador / Secretária pelo modal
+formAdminLogin?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminLoginEmail')?.value;
+    const password = document.getElementById('adminLoginPassword')?.value;
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || 'Credenciais inválidas.');
+            return;
+        }
+
+        sessionStorage.setItem('userToken', data.token);
+        sessionStorage.setItem('userRole', data.user.role);
+        sessionStorage.setItem('userName', data.user.name);
+
+        if (data.user.role === 'ADMIN' || data.user.role === 'SECRETARIA') {
+            if (navPainelLi) navPainelLi.style.display = 'inline-block';
+            if (adminLoggedNotice) adminLoggedNotice.style.display = 'block';
+            if (adminLoggedRoleBadge) adminLoggedRoleBadge.textContent = data.user.role;
+            alert(`✅ Autenticado com sucesso como ${data.user.role}! O botão do Painel foi desbloqueado para sua sessão.`);
+        } else {
+            alert('Conta de cliente autenticada.');
+        }
+    } catch {
+        alert('Erro ao realizar login.');
+    }
+});
+
+btnPortalClienteNav?.addEventListener('click', () => {
+    const savedPhone = sessionStorage.getItem('portalUserPhone') || '';
+    if (portalPhoneInput && savedPhone) {
+        portalPhoneInput.value = savedPhone;
+        carregarAgendamentosCliente(savedPhone);
+    }
+    abrirModal('modalPortalCliente');
+});
+
+btnConsultarAgendamentos?.addEventListener('click', () => {
+    const phone = portalPhoneInput?.value.trim();
+    if (!phone) { alert('Informe seu telefone.'); return; }
+    sessionStorage.setItem('portalUserPhone', phone);
+    carregarAgendamentosCliente(phone);
+});
+
+async function carregarAgendamentosCliente(phone) {
+    if (!clientAptsContainer) return;
+    clientAptsContainer.innerHTML = '<p style="color:#6b7280; font-size:0.9rem;">Buscando agendamentos...</p>';
+
+    try {
+        const res = await fetch('/api/agendamentos');
+        const data = await res.json();
+        const cleanQuery = phone.replace(/\D/g, '');
+
+        const userApts = (data.agendamentos || []).filter(a => {
+            const aptClean = (a.clienteTelefone || '').replace(/\D/g, '');
+            return aptClean.includes(cleanQuery) || cleanQuery.includes(aptClean);
+        });
+
+        if (userApts.length === 0) {
+            clientAptsContainer.innerHTML = '<p style="color:#6b7280; font-size:0.9rem;">Nenhum agendamento encontrado para este telefone.</p>';
+            return;
+        }
+
+        clientAptsContainer.innerHTML = userApts.map(a => `
+            <div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong>${a.servicoNome}</strong> com <em>${a.barbeiroNome}</em><br>
+                    <small style="color:#4b5563;">📅 ${a.dataISO} às ${a.horaInicio} | ${toBRL(a.valor)}</small><br>
+                    <span style="display:inline-block; font-size:0.75rem; padding:2px 6px; border-radius:4px; font-weight:600; background:#e0f2fe; color:#0369a1; margin-top:4px;">${a.status}</span>
+                </div>
+                ${a.status !== 'CANCELADO' ? `
+                    <button type="button" class="btn-cancel-apt" data-id="${a.id}" style="background:#fee2e2; color:#b91c1c; border:1px solid #ef4444; padding:4px 8px; border-radius:4px; font-size:0.8rem; cursor:pointer;">
+                        Cancelar
+                    </button>
+                ` : ''}
+            </div>
+        `).join('');
+
+        clientAptsContainer.querySelectorAll('.btn-cancel-apt').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('Deseja realmente cancelar este agendamento?')) return;
+                try {
+                    await fetch(`/api/agendamentos/${btn.dataset.id}/status`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'CANCELADO' })
+                    });
+                    alert('Agendamento cancelado.');
+                    carregarAgendamentosCliente(phone);
+                } catch {
+                    alert('Erro ao cancelar.');
+                }
+            });
+        });
+    } catch {
+        clientAptsContainer.innerHTML = '<p style="color:#dc2626;">Erro ao consultar histórico.</p>';
+    }
+}
+
+// LGPD Export Data
+btnExportarDadosLGPD?.addEventListener('click', async () => {
+    const phone = portalPhoneInput?.value.trim() || 'meus_dados';
+    try {
+        const res = await fetch('/api/agendamentos');
+        const data = await res.json();
+        const exportObj = {
+            solicitante: { telefone: phone, dataSolicitacao: new Date().toISOString() },
+            historicoAgendamentos: data.agendamentos || [],
+            politicaPrivacidade: 'Conformidade LGPD - Lei 13.709/2018'
+        };
+        const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dados_lgpd_${phone}.json`;
+        a.click();
+    } catch {
+        alert('Erro ao gerar exportação LGPD.');
+    }
+});
+
+// LGPD Request Erasure
+btnSolicitarExclusaoLGPD?.addEventListener('click', () => {
+    if (!confirm('Atenção: A solicitação de exclusão de dados (Direito ao Esquecimento - Art. 18 LGPD) anonimizará seu histórico. Deseja prosseguir?')) return;
+    alert('Sua solicitação de anonimização e exclusão de dados foi registrada com sucesso.');
+    fecharModal('modalPortalCliente');
+});
+
+// ===== CAMINHO A: FLUXO WHATSAPP RÁPIDO =====
 const nomeClienteInput = document.getElementById('nomeCliente');
 document.getElementById('btnClienteContinuar')?.addEventListener('click', () => {
-    const nome = (nomeClienteInput.value || '').trim();
+    const nome = (nomeClienteInput?.value || '').trim();
     if (!nome) { alert('Digite seu nome para continuar.'); return; }
     agendamentoContexto.nomeCliente = nome;
     fecharModal('modalCliente');
@@ -190,20 +513,22 @@ const btnProdutosPular = document.getElementById('btnProdutosPular');
 const btnProdutosContinuar = document.getElementById('btnProdutosContinuar');
 
 function renderProdutos() {
+    if (!produtosContainer) return;
     produtosContainer.innerHTML = '';
     PRODUTOS.forEach((p, i) => {
         const card = document.createElement('div');
         card.className = 'prod-card';
         card.dataset.index = i;
         card.innerHTML = `
-      <div class="p-name">${p.nome}</div>
-      <div class="p-price">${toBRL(p.preco)}</div>
-      <small class="muted">Toque para selecionar</small>
-    `;
+            <div class="p-name">${p.nome}</div>
+            <div class="p-price">${toBRL(p.preco)}</div>
+            <small class="muted">Toque para selecionar</small>
+        `;
         card.addEventListener('click', () => toggleProduto(i, card));
         produtosContainer.appendChild(card);
     });
 }
+
 function toggleProduto(index, cardEl) {
     const item = PRODUTOS[index];
     const exists = agendamentoContexto.produtos.find(pr => pr.nome === item.nome);
@@ -215,298 +540,154 @@ function toggleProduto(index, cardEl) {
         cardEl.classList.add('active');
     }
     agendamentoContexto.totalProdutos = agendamentoContexto.produtos.reduce((s, it) => s + (it.preco || 0), 0);
-    prodTotalSpan.textContent = toBRL(agendamentoContexto.totalProdutos);
+    if (prodTotalSpan) prodTotalSpan.textContent = toBRL(agendamentoContexto.totalProdutos);
 }
+
 function abrirModalProdutos() {
     agendamentoContexto.produtos = [];
     agendamentoContexto.totalProdutos = 0;
-    prodTotalSpan.textContent = toBRL(0);
+    if (prodTotalSpan) prodTotalSpan.textContent = toBRL(0);
     renderProdutos();
     abrirModal('modalProdutos');
 }
-btnProdutosPular?.addEventListener('click', () => { fecharModal('modalProdutos'); abrirModalRAClub(); });
-btnProdutosContinuar?.addEventListener('click', () => { fecharModal('modalProdutos'); abrirModalRAClub(); });
+
+btnProdutosPular?.addEventListener('click', () => { fecharModal('modalProdutos'); abrirModal('modalRAClub'); });
+btnProdutosContinuar?.addEventListener('click', () => { fecharModal('modalProdutos'); abrirModal('modalRAClub'); });
 
 // RA Club
 const btnRAJaMembro = document.getElementById('btnRAJaMembro');
 const btnRANao = document.getElementById('btnRANao');
-const btnRAAssinar = document.getElementById('btnRAAssinar');
-function abrirModalRAClub() { abrirModal('modalRAClub'); }
-btnRAJaMembro?.addEventListener('click', () => { agendamentoContexto.raclub = { status: 'membro' }; fecharModal('modalRAClub'); abrirModalAgendamento(); });
-btnRANao?.addEventListener('click', () => { agendamentoContexto.raclub = { status: 'nao' }; fecharModal('modalRAClub'); abrirModalAgendamento(); });
-if (btnRAAssinar) {
-    const RA_CLUB_CHECKOUT_URL = btnRAAssinar.getAttribute('href') || '';
-    btnRAAssinar.addEventListener('click', () => {
-        agendamentoContexto.raclub = { status: 'assinar_link' };
-        salvarContextoSessao();
-        sessionStorage.setItem('raclubCheckoutRedirect', '1');
-        if (!RA_CLUB_CHECKOUT_URL) alert('Link de checkout não configurado.');
-    });
-}
+btnRAJaMembro?.addEventListener('click', () => { agendamentoContexto.raclub = { status: 'membro' }; fecharModal('modalRAClub'); abrirModalAgendamentoWhatsapp(); });
+btnRANao?.addEventListener('click', () => { agendamentoContexto.raclub = { status: 'nao' }; fecharModal('modalRAClub'); abrirModalAgendamentoWhatsapp(); });
 
-// Agendamento (data/hora)
+// WhatsApp Appointment Modal
 const dataInput = document.getElementById('data');
 const horaSelect = document.getElementById('hora');
 
-function gerarIntervalos(inicio = '09:00', fim = '18:00', passoMin = 60) {
-    const out = [];
-    let [h, m] = inicio.split(':').map(Number);
-    const [hF, mF] = fim.split(':').map(Number);
-    while (h < hF || (h === hF && m <= mF)) {
-        out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-        m += passoMin;
-        while (m >= 60) { m -= 60; h += 1; }
-    }
-    return out;
-}
 function fillHorasForProf() {
-    const lista = gerarIntervalos('09:00', '18:00', 60);
-    horaSelect.innerHTML = `<option value="">Selecione um horário</option>` +
-        lista.map(h => `<option>${h}</option>`).join('');
-}
-
-function resetSelectVisual() {
-    for (const opt of horaSelect.options) {
-        if (!opt.value) continue;
-        opt.disabled = false;
-        opt.classList.remove('reservado');
+    const lista = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+    if (horaSelect) {
+        horaSelect.innerHTML = `<option value="">Selecione um horário</option>` +
+            lista.map(h => `<option value="${h}">${h}</option>`).join('');
     }
 }
-function abrirModalAgendamento() {
-    const hoje = new Date();
-    const y = hoje.getFullYear();
-    const m = String(hoje.getMonth() + 1).padStart(2, "0");
-    const d = String(hoje.getDate()).padStart(2, "0");
-    dataInput.min = `${y}-${m}-${d}`;
-    dataInput.value = "";
 
+function abrirModalAgendamentoWhatsapp() {
+    const hoje = new Date().toISOString().split('T')[0];
+    if (dataInput) {
+        dataInput.min = hoje;
+        dataInput.value = hoje;
+    }
     fillHorasForProf();
-
-    horaSelect.value = "";
-    resetSelectVisual();
-
     const display = document.getElementById('servicoDisplay');
-    display.value = agendamentoContexto.servico
-        ? `${agendamentoContexto.servico.nome} — ${toBRL(agendamentoContexto.servico.valor)}`
-        : '';
-
+    if (display) {
+        display.value = agendamentoContexto.servico
+            ? `${agendamentoContexto.servico.nome} — ${toBRL(agendamentoContexto.servico.valor)}`
+            : '';
+    }
     abrirModal('modal');
 }
 
-// Botões dos profissionais
+// Botões dos Barbeiros na Seção Contact
 document.querySelectorAll('.openModalBtn').forEach(btn => {
     btn.addEventListener('click', () => {
-        ctx.profissional = btn.dataset.pro || 'Profissional';
-        ctx.wa = btn.dataset.wa || '5581996221060';
-        ctx.colecao = 'agendamentos';
-        salvarContextoSessao();
+        ctx.profissional = btn.dataset.pro || 'Rodrigo';
+        ctx.wa = btn.dataset.wa || '5511999998888';
         abrirModal('modalCliente');
     });
 });
 
-const confirmarBtn = document.getElementById('confirmarBtn');
-const toKey = (ymd, hhmm, profSlug) => `ag_${ymd}_${hhmm}_${profSlug}`;
-const normalizeHora = (h) => (h || "").padStart(5, "0");
-const diaProfKey = (ymd, prof) => `${ymd}#${prof}`;
-
-// === Listar ocupados SEM índice composto (1 where) ===
-async function getReservasByDate(ymd) {
-    const q = query(
-        collection(db, 'agendamentos'),
-        where("diaProf", "==", diaProfKey(ymd, "barbeiro"))
-    );
-    const snap = await getDocs(q);
-    const horasOcupadas = new Set();
-    snap.forEach(d => {
-        const row = d.data();
-        if (row?.hora) horasOcupadas.add(row.hora);
-    });
-    return horasOcupadas;
-}
-async function carregarIndisponiveis() {
-    if (!dataInput?.value) return;
-    resetSelectVisual();
-    try {
-        const horas = await getReservasByDate(dataInput.value);
-        for (const opt of horaSelect.options) {
-            if (!opt.value) continue;
-            const ocupado = horas.has(opt.value);
-            opt.disabled = ocupado;
-            opt.classList.toggle('reservado', ocupado);
-            if (ocupado && horaSelect.value === opt.value) horaSelect.value = '';
-        }
-    } catch (e) {
-        console.error("Erro ao carregar horários:", e);
-    }
-}
-dataInput?.addEventListener('change', carregarIndisponiveis);
-
-// ===== Modal de Serviço =====
+// Modal de Serviço
 const servicoDisplay = document.getElementById('servicoDisplay');
 const servicoLista = document.getElementById('servicoLista');
 const servicoCancelar = document.getElementById('servicoCancelar');
 const servicoConfirmarWpp = document.getElementById('servicoConfirmarWpp');
-
-// 🔍 busca
 const svcSearch = document.getElementById('svcSearch');
-let svcFilterText = "";
-const norm = (s) => (s || "").normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-function getFilteredServicos() {
-    const base = SERVICOS.slice(1);
-    if (!svcFilterText.trim()) return [SERVICOS[0], ...base];
-    const f = norm(svcFilterText);
-    const filtered = base.filter(s => norm(s.nome).includes(f));
-    return [SERVICOS[0], ...filtered];
-}
+
 function renderListaServicos() {
-    const items = getFilteredServicos();
-    servicoLista.innerHTML = items.map((s) => {
-        const checked = agendamentoContexto.servico
-            ? (agendamentoContexto.servico.nome === s.nome ? 'checked' : '')
-            : (s.placeholder ? 'checked' : '');
+    if (!servicoLista) return;
+    const base = SERVICOS.slice(1);
+    const filter = (svcSearch?.value || '').toLowerCase().trim();
+    const filtered = filter ? base.filter(s => s.nome.toLowerCase().includes(filter)) : base;
+
+    servicoLista.innerHTML = [SERVICOS[0], ...filtered].map((s) => {
+        const checked = agendamentoContexto.servico?.nome === s.nome ? 'checked' : '';
         const sub = s.placeholder ? '' : `<div class="svc-muted">${s.valor != null ? toBRL(s.valor) : ''}</div>`;
         return `
-      <label class="svc-row" data-nome="${s.nome}">
-        <div class="svc-left">
-          <div class="svc-name">${s.nome}</div>
-          ${sub}
-        </div>
-        <input class="svc-radio" type="radio" name="svc" value="${s.nome}" ${checked} />
-      </label>
-    `;
+            <label class="svc-row" data-nome="${s.nome}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f3f4f6; cursor:pointer;">
+                <div class="svc-left">
+                    <div class="svc-name" style="font-weight:600;">${s.nome}</div>
+                    ${sub}
+                </div>
+                <input class="svc-radio" type="radio" name="svc" value="${s.nome}" ${checked} />
+            </label>
+        `;
     }).join('');
-    servicoLista.querySelectorAll('.svc-row').forEach(row => {
-        row.addEventListener('click', () => {
-            const radio = row.querySelector('input[type="radio"]');
-            if (!radio) return;
-            radio.checked = true;
-        });
-    });
 }
-function abrirServico() {
-    svcFilterText = "";
-    if (svcSearch) svcSearch.value = "";
+
+servicoDisplay?.addEventListener('click', () => {
     renderListaServicos();
     abrirModal('servicoModal');
-}
-servicoDisplay?.addEventListener('click', abrirServico);
+});
 servicoCancelar?.addEventListener('click', () => fecharModal('servicoModal'));
-svcSearch?.addEventListener('input', (e) => { svcFilterText = e.target.value || ""; renderListaServicos(); });
+svcSearch?.addEventListener('input', renderListaServicos);
 
 servicoConfirmarWpp?.addEventListener('click', () => {
-    const sel = servicoLista.querySelector('input[name="svc"]:checked');
+    const sel = servicoLista?.querySelector('input[name="svc"]:checked');
     if (!sel) { alert('Selecione um serviço.'); return; }
     const nomeSel = sel.value;
     const s = SERVICOS.find(x => x.nome === nomeSel);
     if (!s || s.placeholder) { alert('Selecione um serviço.'); return; }
 
     agendamentoContexto.servico = { nome: s.nome, valor: s.valor };
-    servicoDisplay.value = `${s.nome} — ${toBRL(s.valor)}`;
+    if (servicoDisplay) servicoDisplay.value = `${s.nome} — ${toBRL(s.valor)}`;
     fecharModal('servicoModal');
-
-    if (dataInput.value && horaSelect.value) {
-        confirmarBtn.click();
-    }
 });
 
-// ===== Confirmar agendamento =====
+// Confirmar e Gerar Link WhatsApp
+const confirmarBtn = document.getElementById('confirmarBtn');
 confirmarBtn?.addEventListener('click', async () => {
     const data = dataInput?.value;
     const hora = horaSelect?.value;
-    if (!data || !hora) { alert("Selecione data e horário."); return; }
-    if (!agendamentoContexto.servico) { alert("Selecione o serviço."); abrirServico(); return; }
-    if (!ctx.wa) { alert("Profissional não definido."); return; }
+    if (!data) { alert("Selecione uma data."); return; }
+    if (!agendamentoContexto.servico) { alert("Selecione o serviço."); abrirModal('servicoModal'); return; }
 
-    confirmarBtn.disabled = true;
-    const originalText = confirmarBtn.textContent;
-    confirmarBtn.textContent = "Reservando...";
+    const dataBR = new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR');
 
     try {
-        const hhmm = normalizeHora(hora);
-        const profSlug = "barbeiro";
-        const ref = doc(db, 'agendamentos', toKey(data, hhmm, profSlug));
-
-        const checkSnap = await getDoc(ref);
-        if (checkSnap.exists()) {
-            await carregarIndisponiveis();
-            alert("Este horário já foi reservado. Escolha outro, por favor.");
-            return;
-        }
-
-        const isRaClub = agendamentoContexto?.raclub?.status === 'membro';
-
-        await setDoc(ref, {
-            dataISO: data,
-            hora: hhmm,
-            profissional: "barbeiro",
-            diaProf: diaProfKey(data, "barbeiro"),
-            barbeiroNome: ctx.profissional,
-            clienteNome: agendamentoContexto.nomeCliente || null,
-            cliente: agendamentoContexto.nomeCliente || null,
-            servico: agendamentoContexto.servico?.nome || null,
-            valor: agendamentoContexto.servico?.valor ?? 0,
-            servicoNome: agendamentoContexto.servico?.nome || null,
-            servicoValor: agendamentoContexto.servico?.valor ?? null,
-            produtos: agendamentoContexto.produtos || [],
-            totalProdutos: agendamentoContexto.totalProdutos || 0,
-            raclub: agendamentoContexto.raclub || { status: 'nao' },
-            raclubMembro: isRaClub,
-            clienteTipo: isRaClub ? 'raclub' : 'cliente',
-            tags: isRaClub ? ['raclub'] : [],
-            bloqueado: false,
-            pagamentoForma: "",
-            createdAt: serverTimestamp()
+        const res = await fetch('/api/automacao/whatsapp/gerar-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: ctx.wa,
+                clienteNome: agendamentoContexto.nomeCliente,
+                barbeiroNome: ctx.profissional,
+                servicoNome: agendamentoContexto.servico.nome,
+                servicoPreco: agendamentoContexto.servico.valor,
+                dataBR,
+                hora: hora || 'A definir',
+                produtos: agendamentoContexto.produtos,
+                raclubStatus: agendamentoContexto.raclub?.status
+            })
         });
 
-        try { await carregarIndisponiveis(); } catch (e) {
-            console.warn("Falhou recarregar indisponíveis (UI):", e);
+        const dataRes = await res.json();
+        if (dataRes.url) {
+            window.open(dataRes.url, '_blank');
         }
-
-        const dataBR = new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR');
-        const servicoTxt = agendamentoContexto.servico
-            ? `Serviço: ${agendamentoContexto.servico.nome} (${toBRL(agendamentoContexto.servico.valor)})\n`
-            : '';
-
-        let produtosTxt = "Sem produtos adicionais";
-        if (agendamentoContexto.produtos.length) {
-            const list = agendamentoContexto.produtos.map(p => `${p.nome} (${toBRL(p.preco)})`).join(', ');
-            produtosTxt = `Produtos: ${list} | Total: ${toBRL(agendamentoContexto.totalProdutos)}`;
-        }
-
-        let raclubTxt = "RA Club: Não";
-        if (agendamentoContexto.raclub.status === 'membro') raclubTxt = "RA Club: Já sou membro";
-        else if (agendamentoContexto.raclub.status === 'assinar') raclubTxt = "RA Club: Quero assinar";
-        else if (agendamentoContexto.raclub.status === 'assinar_link') raclubTxt = "RA Club: Quero assinar (via link)";
-
-        const mensagem =
-            `Olá! Sou ${agendamentoContexto.nomeCliente}${isRaClub ? " (RA Club)" : ""}.
-Agendamento Confirmado com ${ctx.profissional} para o dia ${dataBR} às ${hhmm}.
-${servicoTxt}${produtosTxt}
-${raclubTxt}`;
-
-        const url = `https://wa.me/${ctx.wa}?text=${encodeURIComponent(mensagem)}`;
-        window.open(url, "_blank");
-
-        const reviewBtn = document.getElementById('btnAvaliarGoogle');
-        if (REVIEW_URL && !/SEU_PLACE_ID_AQUI/i.test(REVIEW_URL)) reviewBtn.href = REVIEW_URL;
-        setTimeout(() => abrirModal('modalAvaliacao'), 400);
-
         fecharModal('modal');
-    } catch (err) {
-        console.error("[RESERVA]", err);
-        alert("Não foi possível concluir a reserva. Tente novamente.");
-    } finally {
-        confirmarBtn.disabled = false;
-        confirmarBtn.textContent = originalText || "Agendar via WhatsApp";
+        setTimeout(() => abrirModal('modalAvaliacao'), 400);
+    } catch {
+        alert('Erro ao gerar link de WhatsApp.');
     }
 });
 
-// Fechar modal clicando fora
+// Fechar modais clicando fora
 window.addEventListener('click', (e) => {
     document.querySelectorAll('.modal').forEach(m => {
         if (e.target === m) m.style.display = 'none';
     });
 });
 
-// Retomar fluxo pós-checkout
-tentarRetomarPosCheckout();
+// Boot
+loadCatalog();

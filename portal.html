@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Cliente • Barbearia</title>
+    <meta name="description" content="Acesse seus agendamentos, histórico de atendimento e gerencie sua conta na Barbearia." />
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            color: #1f2937;
+        }
+        .portal-header {
+            background: #18181b;
+            color: #fff;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .portal-container {
+            max-width: 900px;
+            margin: 32px auto;
+            padding: 0 16px;
+        }
+        .auth-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            max-width: 480px;
+            margin: 40px auto;
+        }
+        .tab-switch {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+        .tab-switch button {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab-switch button.active {
+            color: #d97706;
+            border-bottom-color: #d97706;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        .btn-portal-primary {
+            width: 100%;
+            background: #d97706;
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 0;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-portal-primary:hover {
+            background: #b45309;
+        }
+        .apt-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-CONFIRMADO { background: #e0f2fe; color: #0369a1; }
+        .status-CONCLUIDO { background: #dcfce7; color: #15803d; }
+        .status-CANCELADO { background: #fee2e2; color: #b91c1c; }
+    </style>
+</head>
+<body>
+    <header class="portal-header">
+        <a href="/" style="display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-weight:700; font-size:1.1rem;">
+            <img src="./assets/logo-ra-baberaria1.png" alt="Logo" style="height:32px;">
+            Barbearia • Portal do Cliente
+        </a>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <a href="/" style="color:#d1d5db; text-decoration:none; font-size:0.9rem; display:flex; align-items:center; gap:4px;">
+                <i class='bx bx-arrow-back'></i> Voltar para o Site
+            </a>
+            <button id="btnLogoutCliente" style="display:none; background:none; border:1px solid #4b5563; color:#fff; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.85rem;">
+                <i class='bx bx-log-out'></i> Sair
+            </button>
+        </div>
+    </header>
+
+    <div class="portal-container">
+        <!-- SEÇÃO DE LOGIN / CADASTRO -->
+        <div id="authSection" class="auth-card">
+            <div class="tab-switch">
+                <button type="button" id="tabBtnLogin" class="active">Entrar na Minha Conta</button>
+                <button type="button" id="tabBtnRegister">Novo Cadastro</button>
+            </div>
+
+            <!-- Formulário de Login -->
+            <form id="formLoginCliente">
+                <div class="form-group">
+                    <label>E-mail ou Telefone</label>
+                    <input type="text" id="loginIdentifier" placeholder="Seu e-mail ou WhatsApp" value="carlos@cliente.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="loginPassword" placeholder="Sua senha" value="cliente123" required>
+                </div>
+                <button type="submit" class="btn-portal-primary">Acessar Minha Conta</button>
+            </form>
+
+            <!-- Formulário de Cadastro Novo -->
+            <form id="formRegisterCliente" style="display:none;">
+                <div class="form-group">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="regName" placeholder="Seu nome completo" required>
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp / Telefone *</label>
+                    <input type="tel" id="regPhone" placeholder="(XX) XXXXX-XXXX" required>
+                </div>
+                <div class="form-group">
+                    <label>E-mail *</label>
+                    <input type="email" id="regEmail" placeholder="seuemail@exemplo.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha de Acesso (mínimo 6 caracteres) *</label>
+                    <input type="password" id="regPassword" placeholder="Crie uma senha segura" minlength="6" required>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:0.8rem; color:#4b5563; display:flex; align-items:flex-start; gap:8px;">
+                        <input type="checkbox" id="regLgpdConsent" required style="width:auto; margin-top:3px;" checked>
+                        <span>Concordo com os Termos de Privacidade e Proteção de Dados (LGPD) da Barbearia para gestão dos meus agendamentos.</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn-portal-primary">Criar Cadastro e Entrar</button>
+            </form>
+        </div>
+
+        <!-- SEÇÃO LOGADA DO CLIENTE -->
+        <div id="clientDashboard" style="display:none;">
+            <div style="background:#fff; border-radius:12px; padding:24px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                <div>
+                    <h2 style="margin:0 0 4px; font-size:1.4rem;">Olá, <span id="clientGreetingName">Cliente</span>! 👋</h2>
+                    <p style="margin:0; color:#6b7280; font-size:0.9rem;">Telefone: <strong id="clientGreetingPhone">—</strong> | E-mail: <strong id="clientGreetingEmail">—</strong></p>
+                </div>
+                <div>
+                    <a href="/#booking-options" style="background:#d97706; color:#fff; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                        <i class='bx bx-calendar-plus'></i> Agendar Novo Horário
+                    </a>
+                </div>
+            </div>
+
+            <!-- Meus Agendamentos -->
+            <div style="background:#fff; border-radius:12px; padding:24px; margin-bottom:24px;">
+                <h3 style="margin:0 0 16px; font-size:1.15rem; display:flex; align-items:center; gap:8px;">
+                    <i class='bx bx-time-five' style="color:#d97706;"></i> Meus Agendamentos
+                </h3>
+                <div id="clientAppointmentsList">
+                    <p style="color:#6b7280;">Carregando agendamentos...</p>
+                </div>
+            </div>
+
+            <!-- LGPD & Privacidade -->
+            <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:12px; padding:20px;">
+                <h4 style="margin:0 0 6px; color:#92400e; font-size:1rem; display:flex; align-items:center; gap:6px;">
+                    <i class='bx bx-shield-quarter'></i> Privacidade e Proteção de Dados (LGPD)
+                </h4>
+                <p style="margin:0 0 12px; color:#78350f; font-size:0.85rem;">
+                    Em cumprimento à Lei Geral de Proteção de Dados (Lei 13.709/2018), você possui total controle sobre seus dados pessoais:
+                </p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button type="button" id="btnExportarDados" style="background:#fff; color:#92400e; border:1px solid #d97706; padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.85rem;">
+                        <i class='bx bx-download'></i> Baixar Meus Dados (JSON)
+                    </button>
+                    <button type="button" id="btnExcluirConta" style="background:#fee2e2; color:#b91c1c; border:1px solid #ef4444; padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.85rem;">
+                        <i class='bx bx-trash'></i> Solicitar Exclusão da Conta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentClient = null;
+
+        const tabBtnLogin = document.getElementById('tabBtnLogin');
+        const tabBtnRegister = document.getElementById('tabBtnRegister');
+        const formLoginCliente = document.getElementById('formLoginCliente');
+        const formRegisterCliente = document.getElementById('formRegisterCliente');
+        const authSection = document.getElementById('authSection');
+        const clientDashboard = document.getElementById('clientDashboard');
+        const btnLogoutCliente = document.getElementById('btnLogoutCliente');
+
+        tabBtnLogin.addEventListener('click', () => {
+            tabBtnLogin.classList.add('active');
+            tabBtnRegister.classList.remove('active');
+            formLoginCliente.style.display = 'block';
+            formRegisterCliente.style.display = 'none';
+        });
+
+        tabBtnRegister.addEventListener('click', () => {
+            tabBtnRegister.classList.add('active');
+            tabBtnLogin.classList.remove('active');
+            formRegisterCliente.style.display = 'block';
+            formLoginCliente.style.display = 'none';
+        });
+
+        function checkStoredSession() {
+            const token = localStorage.getItem('clientToken');
+            const clientData = localStorage.getItem('clientData');
+            if (token && clientData) {
+                currentClient = JSON.parse(clientData);
+                showDashboard();
+            }
+        }
+
+        formLoginCliente.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginIdentifier').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || 'Credenciais inválidas.');
+                    return;
+                }
+
+                currentClient = data.user;
+                localStorage.setItem('clientToken', data.token);
+                localStorage.setItem('clientData', JSON.stringify(data.user));
+
+                if (data.user.role === 'ADMIN' || data.user.role === 'SECRETARIA') {
+                    sessionStorage.setItem('userToken', data.token);
+                    sessionStorage.setItem('userRole', data.user.role);
+                    sessionStorage.setItem('userName', data.user.name);
+                    localStorage.setItem('userToken', data.token);
+                    localStorage.setItem('userRole', data.user.role);
+                    localStorage.setItem('userName', data.user.name);
+                }
+
+                showDashboard();
+            } catch {
+                alert('Erro ao realizar login.');
+            }
+        });
+
+        formRegisterCliente.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const lgpdConsent = document.getElementById('regLgpdConsent').checked;
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone, email, password, lgpdConsent })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || 'Erro ao realizar cadastro.');
+                    return;
+                }
+
+                alert('✅ Cadastro realizado com sucesso!');
+                currentClient = data.user;
+                localStorage.setItem('clientToken', data.token);
+                localStorage.setItem('clientData', JSON.stringify(data.user));
+                showDashboard();
+            } catch {
+                alert('Erro de conexão no cadastro.');
+            }
+        });
+
+        btnLogoutCliente.addEventListener('click', () => {
+            localStorage.removeItem('clientToken');
+            localStorage.removeItem('clientData');
+            currentClient = null;
+            authSection.style.display = 'block';
+            clientDashboard.style.display = 'none';
+            btnLogoutCliente.style.display = 'none';
+        });
+
+        function showDashboard() {
+            authSection.style.display = 'none';
+            clientDashboard.style.display = 'block';
+            btnLogoutCliente.style.display = 'inline-flex';
+
+            document.getElementById('clientGreetingName').textContent = currentClient.name;
+            document.getElementById('clientGreetingPhone').textContent = currentClient.phone || '—';
+            document.getElementById('clientGreetingEmail').textContent = currentClient.email || '—';
+
+            loadClientAppointments();
+        }
+
+        async function loadClientAppointments() {
+            const container = document.getElementById('clientAppointmentsList');
+            const token = localStorage.getItem('clientToken');
+
+            try {
+                const res = await fetch('/api/agendamentos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const apts = data.agendamentos || [];
+
+                if (apts.length === 0) {
+                    container.innerHTML = `<p style="color:#6b7280;">Você ainda não possui nenhum agendamento. <a href="/#booking-options" style="color:#d97706; font-weight:600;">Agendar agora</a></p>`;
+                    return;
+                }
+
+                container.innerHTML = apts.map(a => `
+                    <div class="apt-card">
+                        <div>
+                            <strong style="font-size:1.05rem;">${a.servicoNome}</strong> com <em>${a.barbeiroNome}</em><br>
+                            <small style="color:#6b7280;">📅 ${a.dataISO} às ${a.horaInicio} • <strong>R$ ${Number(a.valor || 0).toFixed(2)}</strong></small><br>
+                            <span class="status-badge status-${a.status}" style="margin-top:6px; display:inline-block;">${a.status}</span>
+                        </div>
+                        ${a.status !== 'CANCELADO' && a.status !== 'CONCLUIDO' ? `
+                            <button onclick="cancelarMeuAgendamento('${a.id}')" style="background:#fee2e2; color:#b91c1c; border:1px solid #ef4444; padding:6px 12px; border-radius:6px; font-size:0.85rem; font-weight:600; cursor:pointer;">
+                                Cancelar
+                            </button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch {
+                container.innerHTML = `<p style="color:#dc2626;">Erro ao carregar agendamentos.</p>`;
+            }
+        }
+
+        window.cancelarMeuAgendamento = async function(id) {
+            if (!confirm('Deseja realmente cancelar este horário?')) return;
+            const token = localStorage.getItem('clientToken');
+            try {
+                const res = await fetch(`/api/agendamentos/${id}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: 'CANCELADO' })
+                });
+                if (res.ok) {
+                    alert('Agendamento cancelado com sucesso.');
+                    loadClientAppointments();
+                }
+            } catch {
+                alert('Erro ao cancelar.');
+            }
+        };
+
+        // LGPD Export Data
+        document.getElementById('btnExportarDados')?.addEventListener('click', async () => {
+            const token = localStorage.getItem('clientToken');
+            try {
+                const res = await fetch('/api/lgpd/meus-dados', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `meus_dados_barbearia_${currentClient.id}.json`;
+                a.click();
+            } catch {
+                alert('Erro ao exportar dados.');
+            }
+        });
+
+        // LGPD Excluir Conta
+        document.getElementById('btnExcluirConta')?.addEventListener('click', async () => {
+            if (!confirm('Atenção: A exclusão da conta anonimizará permanentemente seus dados pessoais em conformidade com o Artigo 18 da LGPD. Deseja prosseguir?')) return;
+            const token = localStorage.getItem('clientToken');
+            try {
+                const res = await fetch('/api/lgpd/solicitar-exclusao', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                alert(data.message || 'Conta anonimizada com sucesso.');
+                btnLogoutCliente.click();
+            } catch {
+                alert('Erro ao processar solicitação.');
+            }
+        });
+
+        checkStoredSession();
+    </script>
+</body>
+</html>

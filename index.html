@@ -1,253 +1,707 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Barbearia — Painel & Vitrine</title>
-    <meta name="description" content="Sistema completo de painel de controle, agenda, relatórios de faturamento e vitrine de agendamentos para barbearia." />
-    <meta property="og:title" content="Barbearia — Painel & Vitrine" />
-    <meta property="og:description" content="Sistema completo de painel de controle, agenda, relatórios de faturamento e vitrine de agendamentos para barbearia." />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbearia — Estilo, Tradição & Agendamento</title>
+    <meta name="description" content="A experiência definitiva em barbearia clássica e moderna. Agendamento autônomo em tempo real ou atendimento rápido via WhatsApp." />
+    <meta property="og:title" content="Barbearia — Estilo, Tradição & Agendamento" />
+    <meta property="og:description" content="A experiência definitiva em barbearia clássica e moderna. Agende seu horário online ou fale direto com a recepção." />
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <!-- Google Fonts: Cinzel + Plus Jakarta Sans + Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Boxicons -->
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Master Stylesheet -->
+    <link rel="stylesheet" href="./Barbearia_files/style.css">
 </head>
 
 <body>
-    <div id="notification-container"></div>
-
+    <!-- HEADER & NAVIGATION -->
     <header>
         <nav>
-            <a href="#" class="logo">
-                <img src="./assets/logo-ra-baberaria1.png" alt="Logo" class="logo-mark">
-                Barbearia — Painel
+            <a href="#home" class="logo">
+                <img src="./Barbearia_files/logo-ra-baberaria1.png" alt="Barbearia Logo" class="logo-img">
+                <span>BARBEARIA</span>
             </a>
 
-            <div class="tabs-in-header">
-                <button type="button" class="tab-btn" data-tab="agenda"><i class="bx bx-calendar"></i> Agenda</button>
-                <button type="button" class="tab-btn" data-tab="reports"><i class="bx bx-bar-chart"></i>
-                    Relatórios</button>
-                <button type="button" class="tab-btn" data-tab="clientes"><i class="bx bx-user-pin"></i>
-                    Clientes</button>
-                <a href="/Barbearia.html" class="tab-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; color:inherit;"><i class="bx bx-store-alt"></i> Vitrine</a>
-            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Início</a></li>
+                <li><a href="#services">Serviços</a></li>
+                <li><a href="#booking-options">Agendamento</a></li>
+                <li><a href="#barbers">Barbeiros</a></li>
+                <li><a href="#testimonials">Depoimentos</a></li>
+                <li><a href="#contact">Localização</a></li>
+                <li>
+                    <button type="button" id="btnPortalClienteNav" class="btn-nav-account">
+                        <i class="bx bx-user-circle"></i> <span id="navMinhaContaLabel">Minha Conta</span>
+                    </button>
+                </li>
+                <!-- Botão oculto por padrão (liberado somente para ADMIN / SECRETARIA autenticados) -->
+                <li id="navPainelLi" style="display:none;">
+                    <a href="/painel.html" id="navPainelLink" class="btn-nav-admin">
+                        <i class="bx bx-shield-quarter"></i> Painel Admin
+                    </a>
+                </li>
+            </ul>
 
-            <!-- Botão sair removido porque não há mais login -->
-            <div style="margin-left:auto; display:none; align-items:center; gap:8px">
-                <button id="logoutBtn" class="btn btn-light" title="Sair">
-                    <i class='bx bx-log-out'></i> Sair
-                </button>
-            </div>
+            <div class="menu-toggle"><i class="bx bx-menu"></i></div>
         </nav>
     </header>
 
-    <main id="clientesMain">
-        <div class="grid">
-            <div class="left-column">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Cadastro de Cliente</h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="clientForm" class="form-grid">
-                            <div class="form-row">
-                                <div class="field"><label for="clientName">Nome *</label><input type="text"
-                                        id="clientName" required placeholder="Nome completo do cliente"></div>
-                                <div class="field"><label for="clientPhone">Telefone</label><input type="tel"
-                                        id="clientPhone" placeholder="(XX) XXXXX-XXXX" maxlength="15"></div>
-                            </div>
-                            <div class="form-row">
-                                <div class="field"><label for="clientType">Tipo</label><select id="clientType">
-                                        <option value="cliente">Cliente Avulso</option>
-                                        <option value="plano_jc">Plano RA</option>
-                                    </select></div>
-                                <div class="field hidden-block" id="clientValueField"><label for="clientValue">Valor
-                                        Mensal (R$)</label><input type="number" id="clientValue" step="0.01"></div>
-                                <div class="field hidden-block" id="clientPayDayField"><label for="clientPayDay">Dia
-                                        Pgto.</label><input type="number" id="clientPayDay" min="1" max="31"></div>
-                            </div>
-                            <div class="form-row">
-                                <div class="field"><label for="clientStatus">Status</label><select id="clientStatus">
-                                        <option value="ativo">Ativo</option>
-                                        <option value="pausado">Pausado</option>
-                                        <option value="inativo">Inativo</option>
-                                    </select></div>
-                                <div class="field"><label>&nbsp;</label><button type="submit" id="saveClientBtn"
-                                        class="btn btn-primary">Salvar Cliente</button></div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+    <!-- HERO SECTION -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <span class="eyebrow">Ateliê de Barba, Cabelo & Estilo Masculino</span>
+            <h1>ESTILO É O REFLEXO DA SUA <span class="gold-gradient-text">ATITUDE & PERSONALIDADE</span></h1>
+            <p class="hero-subtitle">
+                Tradição clássica com técnicas modernas de visagismo. Escolha a comodidade do agendamento autônomo com horários em tempo real ou fale diretamente com a nossa recepção via WhatsApp.
+            </p>
 
-                <div class="card" style="margin-top:24px;">
-                    <div class="card-header">
-                        <h3>Lista de Clientes</h3>
+            <div class="hero-buttons">
+                <button type="button" id="heroBtnWebAutonomous" class="btn-autonomous">
+                    <i class="bx bx-calendar-check"></i> Agendamento Web Autônomo
+                </button>
+                <a href="#contact" class="btn-whatsapp-hero">
+                    <i class="bx bxl-whatsapp"></i> Atendimento via WhatsApp
+                </a>
+            </div>
+
+            <!-- Trust Highlights -->
+            <div class="hero-trust-bar">
+                <div class="trust-item">
+                    <strong>+10.000</strong>
+                    <span>Cortes & Barbas</span>
+                </div>
+                <div class="trust-item">
+                    <strong>4.9 ★</strong>
+                    <span>Avaliação Google</span>
+                </div>
+                <div class="trust-item">
+                    <strong>100%</strong>
+                    <span>Pontualidade & Conforto</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICES (VITRINE DE SERVIÇOS) -->
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-header">
+                <span class="eyebrow">Cardápio de Serviços</span>
+                <h2>CUIDADOS DE ALTO PADRÃO</h2>
+                <p>Todos os serviços incluem toalha quente aromática, finalização com pomadas premium e consultoria de estilo.</p>
+            </div>
+
+            <div class="haircuts" id="servicesGridContainer">
+                <!-- Service 1 -->
+                <div class="haircut">
+                    <div class="haircut-img-wrapper">
+                        <img src="./Barbearia_files/corte1.png" alt="Acabamento e Pezinho" class="service-img">
+                        <div class="haircut-overlay-gradient"></div>
                     </div>
-                    <div class="card-body">
-                        <div class="client-list-controls">
-                            <div class="search-wrapper">
-                                <i class='bx bx-search'></i>
-                                <input type="search" id="clientSearch" placeholder="Pesquisar por nome ou telefone...">
-                            </div>
-                            <div class="client-filter-tabs">
-                                <button class="filter-tab-btn active" data-filter="all">Todos</button>
-                                <button class="filter-tab-btn" data-filter="cliente">Cliente Avulso</button>
-                                <button class="filter-tab-btn" data-filter="plano_jc">Plano JC</button>
-                            </div>
+                    <div class="haircut-info">
+                        <div class="haircut-header">
+                            <strong>Acabamento / Pezinho</strong>
+                            <span class="haircut-price">R$ 20,00</span>
                         </div>
-                    </div>
-                    <div class="card-body-table">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Telefone</th>
-                                    <th>Tipo</th>
-                                    <th>Status</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="clientTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="right-column">
-                <div class="kpis">
-                    <div class="kpi">
-                        <div class="kpi-label">Membros Ativos (Plano)</div>
-                        <div id="activeMembers" class="kpi-value">0</div>
-                    </div>
-                    <div class="kpi">
-                        <div class="kpi-label">Receita Estimada</div>
-                        <div id="estimatedRevenue" class="kpi-value">R$ 0,00</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Pagamentos do Mês</h3>
-                    </div>
-                    <div class="card-body-table">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Cliente</th>
-                                    <th>Valor</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="paymentsTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="payments-total">Total do mês: <span id="monthlyTotal">R$ 0,00</span></div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <main id="agendaMain">
-        <div class="toolbar">
-            <div class="field"><label for="profissionalSelect">Profissional</label><select
-                    id="profissionalSelect"></select></div>
-            <div class="field"><label for="dataFiltro">Data</label><input type="date" id="dataFiltro" /></div>
-            <div class="field"><label for="horaFiltro">Hora (opcional)</label><select id="horaFiltro">
-                    <option value="">Todas</option>
-                </select></div>
-            <div class="field"><button id="buscarBtn" class="btn btn-primary"><i class='bx bx-search'></i>
-                    Buscar</button></div>
-            <div class="field">
-                <div class="actions">
-                    <button id="bloquearBtn" class="btn btn-del"><i class='bx bx-block'></i> Desativar</button>
-                    <button id="desbloquearBtn" class="btn btn-success"><i class='bx bx-reset'></i> Reativar</button>
-                </div>
-            </div>
-        </div>
-        <div id="agenda-grid"><!-- horários via JS --></div>
-    </main>
-
-    <main id="reportsMain">
-        <div class="kpis">
-            <div class="kpi">
-                <div class="kpi-label">Agendamentos</div>
-                <div id="kpiQtd" class="kpi-value">0</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-label">Faturamento</div>
-                <div id="kpiBruto" class="kpi-value">R$ 0,00</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-label">Ticket médio</div>
-                <div id="kpiTicket" class="kpi-value">R$ 0,00</div>
-            </div>
-        </div>
-
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="card-header">
-                <h3>Relatório Detalhado</h3>
-            </div>
-            <div class="card-body">
-                <div class="reports-toolbar" style="padding:0; border:0; margin-bottom: 24px;">
-                    <div class="field"><label for="relProf">Profissional</label><select id="relProf"></select></div>
-                    <div class="field"><label for="relDe">De</label><input type="date" id="relDe"></div>
-                    <div class="field"><label for="relAte">Até</label><input type="date" id="relAte"></div>
-                    <div class="field">
-                        <div class="actions">
-                            <button id="relGerarBtn" class="btn btn-primary"><i class="bx bx-bar-chart"></i>
-                                Gerar</button>
-                            <button id="exportCsv" class="btn btn-light"><i class="bx bx-download"></i> CSV</button>
+                        <p class="haircut-desc">Alinhamento preciso dos contornos da nuca e costeletas na navalha com toalha aquecida.</p>
+                        <div class="haircut-actions">
+                            <button type="button" class="btn-card-schedule openModalBtn" data-pro="Rodrigo" data-wa="5511999998888">
+                                <i class="bx bxl-whatsapp"></i> WhatsApp
+                            </button>
+                            <button type="button" class="btn-card-schedule" onclick="document.getElementById('heroBtnWebAutonomous').click()">
+                                <i class="bx bx-calendar"></i> Online
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card-body-table">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Profissional</th>
-                            <th>Cliente</th>
-                            <th>Serviço</th>
-                            <th>Forma</th>
-                            <th>Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody id="relDetalheTbody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3>Faturamento por Serviço</h3>
-            </div>
-            <div class="card-body" style="display:flex; flex-direction:column; align-items:center;">
-                <div style="position:relative; max-width:400px; width:100%;">
-                    <canvas id="reportsChart"></canvas>
+                <!-- Service 2 -->
+                <div class="haircut">
+                    <div class="haircut-img-wrapper">
+                        <img src="./Barbearia_files/corte2.png" alt="Barboterapia Completa" class="service-img">
+                        <div class="haircut-overlay-gradient"></div>
+                    </div>
+                    <div class="haircut-info">
+                        <div class="haircut-header">
+                            <strong>Barboterapia Completa</strong>
+                            <span class="haircut-price">R$ 40,00</span>
+                        </div>
+                        <p class="haircut-desc">Modelagem e hidratação profunda de barba com vapor de ozônio, óleos essenciais e toalha quente.</p>
+                        <div class="haircut-actions">
+                            <button type="button" class="btn-card-schedule openModalBtn" data-pro="Rodrigo" data-wa="5511999998888">
+                                <i class="bx bxl-whatsapp"></i> WhatsApp
+                            </button>
+                            <button type="button" class="btn-card-schedule" onclick="document.getElementById('heroBtnWebAutonomous').click()">
+                                <i class="bx bx-calendar"></i> Online
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div id="reportsChartLegend" class="chart-legend"></div>
+
+                <!-- Service 3 -->
+                <div class="haircut">
+                    <div class="haircut-img-wrapper">
+                        <img src="./Barbearia_files/corte3.png" alt="Máquina e Tesoura Degradê" class="service-img">
+                        <div class="haircut-overlay-gradient"></div>
+                    </div>
+                    <div class="haircut-info">
+                        <div class="haircut-header">
+                            <strong>Máquina e Tesoura (Fade)</strong>
+                            <span class="haircut-price">R$ 40,00</span>
+                        </div>
+                        <p class="haircut-desc">Degradê suave (Skin Fade, Taper ou Low Fade) perfeitamente conectado com o topo estruturado na tesoura.</p>
+                        <div class="haircut-actions">
+                            <button type="button" class="btn-card-schedule openModalBtn" data-pro="Rodrigo" data-wa="5511999998888">
+                                <i class="bx bxl-whatsapp"></i> WhatsApp
+                            </button>
+                            <button type="button" class="btn-card-schedule" onclick="document.getElementById('heroBtnWebAutonomous').click()">
+                                <i class="bx bx-calendar"></i> Online
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service 4 -->
+                <div class="haircut">
+                    <div class="haircut-img-wrapper">
+                        <img src="./Barbearia_files/corte-tesoura.png" alt="Corte Exclusivo Tesoura" class="service-img">
+                        <div class="haircut-overlay-gradient"></div>
+                    </div>
+                    <div class="haircut-info">
+                        <div class="haircut-header">
+                            <strong>Corte 100% Tesoura</strong>
+                            <span class="haircut-price">R$ 50,00</span>
+                        </div>
+                        <p class="haircut-desc">Técnica clássica com texturização avançada para caimento natural e elegância atemporal.</p>
+                        <div class="haircut-actions">
+                            <button type="button" class="btn-card-schedule openModalBtn" data-pro="Melqui" data-wa="5511999997777">
+                                <i class="bx bxl-whatsapp"></i> WhatsApp
+                            </button>
+                            <button type="button" class="btn-card-schedule" onclick="document.getElementById('heroBtnWebAutonomous').click()">
+                                <i class="bx bx-calendar"></i> Online
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service 5 -->
+                <div class="haircut">
+                    <div class="haircut-img-wrapper">
+                        <img src="./Barbearia_files/corte4.png" alt="Corte e Botox Capilar Prime" class="service-img">
+                        <div class="haircut-overlay-gradient"></div>
+                    </div>
+                    <div class="haircut-info">
+                        <div class="haircut-header">
+                            <strong>Corte + Botox Prime</strong>
+                            <span class="haircut-price">R$ 105,00</span>
+                        </div>
+                        <p class="haircut-desc">Tratamento reconstrutor que reduz o frizz, repõe massa capilar e deixa o corte impecável.</p>
+                        <div class="haircut-actions">
+                            <button type="button" class="btn-card-schedule openModalBtn" data-pro="Melqui" data-wa="5511999997777">
+                                <i class="bx bxl-whatsapp"></i> WhatsApp
+                            </button>
+                            <button type="button" class="btn-card-schedule" onclick="document.getElementById('heroBtnWebAutonomous').click()">
+                                <i class="bx bx-calendar"></i> Online
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service 6 -->
+                <div class="haircut">
+                    <div class="haircut-img-wrapper">
+                        <img src="./Barbearia_files/corte6.png" alt="Platinado e Luzes" class="service-img">
+                        <div class="haircut-overlay-gradient"></div>
+                    </div>
+                    <div class="haircut-info">
+                        <div class="haircut-header">
+                            <strong>Platinado / Luzes Globais</strong>
+                            <span class="haircut-price">R$ 100,00</span>
+                        </div>
+                        <p class="haircut-desc">Descoloração segura com matização precisa para tons perolados, acinzentados ou dourados de destaque.</p>
+                        <div class="haircut-actions">
+                            <button type="button" class="btn-card-schedule openModalBtn" data-pro="Melqui" data-wa="5511999997777">
+                                <i class="bx bxl-whatsapp"></i> WhatsApp
+                            </button>
+                            <button type="button" class="btn-card-schedule" onclick="document.getElementById('heroBtnWebAutonomous').click()">
+                                <i class="bx bx-calendar"></i> Online
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </main>
+    </section>
 
-    <div class="modal-overlay" id="mainModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle"></h3>
-                <button class="modal-close" id="modalClose">×</button>
+    <!-- DUAL BOOKING OPTIONS SECTION (EXPERIÊNCIA DUPLA DE AGENDAMENTO) -->
+    <section class="booking-options-section" id="booking-options">
+        <div class="container">
+            <div class="section-header">
+                <span class="eyebrow">Agilidade & Comodidade</span>
+                <h2>COMO VOCÊ PREFERE AGENDAR?</h2>
+                <p>Oferecemos dois caminhos modernos para que sua experiência seja ágil e sem complicação.</p>
             </div>
-            <div class="modal-body" id="modalBody"></div>
-            <div class="modal-footer" id="modalFooter"></div>
+
+            <div class="booking-cards-grid">
+                <!-- CAMINHO A: WHATSAPP -->
+                <div class="booking-path-card path-wpp">
+                    <div>
+                        <span class="path-badge path-badge-wpp"><i class="bx bxl-whatsapp"></i> Caminho A • Recepção Express</span>
+                        <h3>Agendamento via WhatsApp</h3>
+                        <p>Fale direto com a nossa recepção. Você escolhe o profissional e serviço, e geramos uma mensagem formatada com todos os dados pronta para envio.</p>
+                        <ul class="path-features-list">
+                            <li><i class="bx bx-check-circle"></i> Escolha o profissional da sua preferência</li>
+                            <li><i class="bx bx-check-circle"></i> Mensagem personalizada com data, hora e serviço</li>
+                            <li><i class="bx bx-check-circle"></i> Atendimento humanizado pela secretária</li>
+                        </ul>
+                    </div>
+                    <a href="#contact" class="btn-whatsapp-hero" style="justify-content:center;">
+                        <i class="bx bxl-whatsapp"></i> Escolher Barbeiro & Chamar
+                    </a>
+                </div>
+
+                <!-- CAMINHO B: WEB AUTÔNOMO -->
+                <div class="booking-path-card path-auto">
+                    <div>
+                        <span class="path-badge path-badge-auto"><i class="bx bx-calendar-star"></i> Caminho B • 100% Automático</span>
+                        <h3>Agendamento Web Autônomo</h3>
+                        <p>Consulte a grade de horários disponíveis em tempo real. O sistema valida conflitos de escala instantaneamente e agenda seu horário sem precisar esperar resposta.</p>
+                        <ul class="path-features-list">
+                            <li><i class="bx bx-check-circle"></i> Disponibilidade de horários em tempo real</li>
+                            <li><i class="bx bx-check-circle"></i> Prevenção inteligente contra choque de agenda</li>
+                            <li><i class="bx bx-check-circle"></i> Lembretes automáticos no seu WhatsApp</li>
+                        </ul>
+                    </div>
+                    <button type="button" id="btnOpenAutonomousModal" class="btn-autonomous" style="justify-content:center;">
+                        <i class="bx bx-calendar-check"></i> Agendar Online Agora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MASTER BARBERS (EQUIPE DE BARBEIROS) -->
+    <section class="barbers-section" id="barbers">
+        <div class="container">
+            <div class="section-header">
+                <span class="eyebrow">Mestres das Tesouras e Navalhas</span>
+                <h2>CONHEÇA NOSSA EQUIPE</h2>
+                <p>Profissionais com anos de experiência dedicados a valorizar o seu estilo.</p>
+            </div>
+
+            <div class="barbers-grid">
+                <!-- Barbeiro 1 -->
+                <div class="barber-card">
+                    <div class="barber-photo-wrapper">
+                        <img src="./Barbearia_files/barbeiro1.png" alt="Rodrigo Barbeiro">
+                    </div>
+                    <h3>Rodrigo Barbeiro</h3>
+                    <p class="barber-specialty">Master Barber • Especialista em Degradê & Barboterapia</p>
+                    <button type="button" class="btn-barber-wpp openModalBtn" data-pro="Rodrigo" data-wa="5511999998888">
+                        <i class="bx bxl-whatsapp"></i> Agendar com Rodrigo
+                    </button>
+                </div>
+
+                <!-- Barbeiro 2 -->
+                <div class="barber-card">
+                    <div class="barber-photo-wrapper">
+                        <img src="./Barbearia_files/barbeiro2.png" alt="Melqui Barbeiro">
+                    </div>
+                    <h3>Melqui Barbeiro</h3>
+                    <p class="barber-specialty">Specialist Barber • Tesoura Clássica & Platinados</p>
+                    <button type="button" class="btn-barber-wpp openModalBtn" data-pro="Melqui" data-wa="5511999997777">
+                        <i class="bx bxl-whatsapp"></i> Agendar com Melqui
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS (DEPOIMENTOS) -->
+    <section class="testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <span class="eyebrow">Reconhecimento & Confiança</span>
+                <h2>O QUE NOSSOS CLIENTES DIZEM</h2>
+                <p>Mais de uma década entregando confiança, pontualidade e satisfação.</p>
+            </div>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="stars-rating">★★★★★</div>
+                    <p class="testimonial-quote">"Melhor barbearia de Pernambuco! O atendimento do Rodrigo e de toda a equipe é impecável, além do ambiente ser super confortável com café e cerveja gelada."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">LG</div>
+                        <div class="author-info">
+                            <strong>Lucas Gabriel</strong>
+                            <span>Cliente Assíduo há 3 anos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="stars-rating">★★★★★</div>
+                    <p class="testimonial-quote">"O agendamento online é surreal de rápido. Escolhi o serviço, o horário exato e quando cheguei já fui atendido na hora sem esperar nem 1 minuto. Nota 10!"</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">MV</div>
+                        <div class="author-info">
+                            <strong>Marcos Vinícius</strong>
+                            <span>Executivo & Cliente Mensal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="stars-rating">★★★★★</div>
+                    <p class="testimonial-quote">"O corte com toalha quente e barboterapia é uma verdadeira terapia depois de um dia de trabalho. Recomendo para qualquer homem de bom gosto."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">TA</div>
+                        <div class="author-info">
+                            <strong>Thiago Albuquerque</strong>
+                            <span>Membro RA Club</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LOCATION & CONTACT -->
+    <section class="location-section" id="contact">
+        <div class="container">
+            <div class="location-box">
+                <div>
+                    <span class="eyebrow">Localização Privilegiada</span>
+                    <h2 style="font-size: 2rem; margin-bottom: 12px;">VENHA NOS VISITAR</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 16px;">
+                        Ambiente climatizado, moderno e pensado para proporcionar momentos de relaxamento e estilo.
+                    </p>
+                    <p style="color: #f8fafc; font-weight: 600; margin-bottom: 8px;">
+                        <i class="bx bx-map-pin" style="color: var(--gold-primary);"></i> Av. Principal, 1234 — Centro Comercial • Recife / PE
+                    </p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+                        <i class="bx bx-time-five" style="color: var(--gold-primary);"></i> Segunda a Sábado das 09:00 às 19:00
+                    </p>
+
+                    <div class="amenities-list">
+                        <div class="amenity-item"><i class="bx bx-wifi"></i> Wi-Fi 5G de Alta Velocidade</div>
+                        <div class="amenity-item"><i class="bx bx-car"></i> Estacionamento Conveniado</div>
+                        <div class="amenity-item"><i class="bx bx-coffee"></i> Café Gourmet & Chopp Cortesia</div>
+                        <div class="amenity-item"><i class="bx bx-wind"></i> Ambiente 100% Climatizado</div>
+                    </div>
+                </div>
+
+                <div style="background: #0f1217; border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 32px; text-align: center;">
+                    <h3 style="font-size: 1.3rem; margin-bottom: 10px; color: var(--gold-light);">Agendamento Rápido no Balcão</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">Dúvidas ou agendamentos corporativos? Fale diretamente com nossa recepção oficial.</p>
+                    <a href="https://wa.me/5511999998888?text=Ol%C3%A1%2C%20gostaria%20de%20tirar%20uma%20d%C3%BAvida%20sobre%20a%20Barbearia" target="_blank" class="btn-whatsapp-hero" style="width: 100%; justify-content: center;">
+                        <i class="bx bxl-whatsapp"></i> Falar com a Recepção (11) 99999-8888
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container footer-content">
+            <p>© 2026 Barbearia. Todos os direitos reservados. Em rigorosa conformidade com a LGPD (Lei Geral de Proteção de Dados - Lei 13.709/2018).</p>
+        </div>
+    </footer>
+
+    <!-- ===== MODAL CAMINHO B: AGENDAMENTO WEB AUTÔNOMO ===== -->
+    <div id="modalAutonomo" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <span class="close" onclick="fecharModal('modalAutonomo')">×</span>
+            <div style="margin-bottom: 18px;">
+                <span class="eyebrow" style="margin-bottom: 4px;">Horários em Tempo Real</span>
+                <h2 style="font-size: 1.4rem;">Agendamento Web Autônomo</h2>
+            </div>
+
+            <form id="autonomousBookingForm">
+                <div style="margin-bottom: 14px;">
+                    <label>Selecione o Profissional:</label>
+                    <select id="autoSelectBarbeiro" required>
+                        <option value="">Carregando barbeiros...</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label>Selecione o Serviço:</label>
+                    <select id="autoSelectServico" required>
+                        <option value="">Carregando serviços...</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label>Data Desejada:</label>
+                    <input type="date" id="autoSelectDate" required>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label>Horários Livres do Barbeiro:</label>
+                    <div id="autoSlotsContainer" class="slots-picker-grid">
+                        <span style="color:var(--text-muted); font-size:0.85rem; grid-column:1/-1; padding: 10px;">Selecione profissional e data para carregar horários...</span>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-bottom: 16px;">
+                    <label style="margin-bottom: 8px;">Dados para Confirmação:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="text" id="autoClientName" placeholder="Seu Nome Completo" required>
+                        <input type="tel" id="autoClientPhone" placeholder="WhatsApp (com DDD)" required>
+                    </div>
+                </div>
+
+                <button type="submit" id="btnConfirmAutonomousBooking" class="btn-autonomous" style="width: 100%; justify-content: center;">
+                    Confirmar Agendamento Autônomo
+                </button>
+            </form>
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
-</body>
+    <!-- ===== MODAL PORTAL DO CLIENTE / MINHA CONTA / LOGIN ADMIN ===== -->
+    <div id="modalPortalCliente" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <span class="close" onclick="fecharModal('modalPortalCliente')">×</span>
+            
+            <div style="display:flex; border-bottom: 1px solid var(--border-card); margin-bottom: 20px;">
+                <button type="button" id="tabBtnPortalCliente" style="flex:1; padding: 12px; border:0; background:none; font-weight:700; color:var(--gold-primary); border-bottom:2px solid var(--gold-primary); cursor:pointer; font-size:0.95rem;">
+                    <i class="bx bx-user"></i> Sou Cliente
+                </button>
+                <button type="button" id="tabBtnPortalAdmin" style="flex:1; padding: 12px; border:0; background:none; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent; cursor:pointer; font-size:0.95rem;">
+                    <i class="bx bx-shield-quarter"></i> Acesso da Equipe / Admin
+                </button>
+            </div>
 
+            <!-- Painel 1: Sou Cliente -->
+            <div id="panelPortalCliente">
+                <div id="clientAuthTabsContainer" style="display:flex; gap:8px; margin-bottom:18px;">
+                    <button type="button" id="subtabBtnClientLogin" class="subtab-btn active">Consultar / Meus Horários</button>
+                    <button type="button" id="subtabBtnClientRegister" class="subtab-btn">Novo Cadastro</button>
+                </div>
+
+                <!-- Modo 1: Consultar / Login Cliente -->
+                <div id="clientLoginView">
+                    <div style="margin-bottom: 16px;">
+                        <label>Informe seu Telefone / WhatsApp cadastrado:</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="tel" id="portalPhoneInput" placeholder="(11) 98877-6655">
+                            <button type="button" id="btnConsultarAgendamentos" class="btn-autonomous" style="padding:10px 18px; font-size:0.88rem;">
+                                <i class="bx bx-search"></i> Consultar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 18px;">
+                        <label>Histórico e Próximos Agendamentos:</label>
+                        <div id="clientAptsContainer" style="background: #0b0d11; border-radius: var(--radius-sm); padding: 14px; border: 1px solid var(--border-card); max-height: 190px; overflow-y: auto;">
+                            <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">Digite seu WhatsApp para listar seus agendamentos em tempo real.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modo 2: Novo Cadastro de Cliente -->
+                <div id="clientRegisterView" style="display:none;">
+                    <form id="formClientRegister">
+                        <div style="margin-bottom: 12px;">
+                            <label>Nome Completo *</label>
+                            <input type="text" id="regClientName" required placeholder="Ex: Roberto Carlos">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <label>WhatsApp / Telefone *</label>
+                                <input type="tel" id="regClientPhone" required placeholder="(81) 9XXXX-XXXX">
+                            </div>
+                            <div>
+                                <label>E-mail *</label>
+                                <input type="email" id="regClientEmail" required placeholder="seu@email.com">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>Senha de Acesso * (mín. 6 dígitos)</label>
+                            <input type="password" id="regClientPassword" required minlength="6" placeholder="••••••••">
+                        </div>
+                        <div style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 8px;">
+                            <input type="checkbox" id="regClientLgpd" required checked style="margin-top: 4px;">
+                            <label for="regClientLgpd" style="font-size: 0.78rem; color: var(--text-muted);">
+                                Concordo com o tratamento dos meus dados para agendamentos e lembretes automáticos nos termos da LGPD.
+                            </label>
+                        </div>
+                        <button type="submit" id="btnSubmitClientRegister" class="btn-autonomous" style="width: 100%; justify-content: center;">
+                            <i class="bx bx-user-plus"></i> Concluir Cadastro de Cliente
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Seção LGPD -->
+                <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid var(--border-gold); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px;">
+                    <h4 style="margin: 0 0 6px; font-size: 0.88rem; color: var(--gold-light); display:flex; align-items:center; gap:6px;">
+                        <i class="bx bx-shield-quarter"></i> Seus Direitos (LGPD - Lei 13.709/2018)
+                    </h4>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 10px;">
+                        Transparência total: você pode baixar uma cópia completa dos seus dados ou solicitar anonimização do histórico.
+                    </p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" id="btnExportarDadosLGPD" style="background: #181d24; color: var(--gold-light); border: 1px solid var(--border-gold); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                            <i class="bx bx-download"></i> Baixar Dados (JSON)
+                        </button>
+                        <button type="button" id="btnSolicitarExclusaoLGPD" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                            <i class="bx bx-trash"></i> Solicitar Anonimização
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel 2: Acesso da Equipe / Admin -->
+            <div id="panelPortalAdmin" style="display:none;">
+                <form id="formAdminLogin">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+                        Acesso exclusivo para o Dono, Barbeiros e Secretária:
+                    </p>
+                    <div style="margin-bottom: 12px;">
+                        <label>E-mail Administrativo:</label>
+                        <input type="email" id="adminLoginEmail" value="rubenmassuquetto1999@gmail.com" required>
+                    </div>
+                    <div style="margin-bottom: 18px;">
+                        <label>Senha de Acesso:</label>
+                        <input type="password" id="adminLoginPassword" value="admin123" required>
+                    </div>
+                    <button type="submit" class="btn-autonomous" style="width: 100%; justify-content: center;">
+                        <i class="bx bx-shield-quarter"></i> Entrar e Desbloquear Painel
+                    </button>
+                </form>
+
+                <div id="adminLoggedNotice" style="display:none; margin-top: 18px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-sm); padding: 16px; text-align: center;">
+                    <p style="margin: 0 0 12px; color: #34d399; font-weight: 600;">✓ Autenticado como <span id="adminLoggedRoleBadge">ADMIN</span></p>
+                    <a href="/painel.html" class="btn-autonomous" style="background: #10b981; color:#fff; text-decoration: none; justify-content: center;">
+                        <i class="bx bx-tachometer"></i> 🚀 Acessar Painel de Gestão
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAIS FLUXO WHATSAPP (CAMINHO A) ===== -->
+    <div id="modal" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <span class="close" onclick="fecharModal('modal')">×</span>
+            <div style="margin-bottom: 16px;">
+                <span class="eyebrow" style="margin-bottom: 4px;">Quase Lá</span>
+                <h2 style="font-size: 1.35rem;">Escolha seu horário</h2>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label for="data">Data Desejada:</label>
+                <input type="date" id="data" required>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label for="hora">Horário:</label>
+                <select id="hora"></select>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label for="servicoDisplay">Serviço Selecionado:</label>
+                <input id="servicoDisplay" type="text" placeholder="Toque para selecionar..." readonly style="cursor:pointer;">
+            </div>
+
+            <button type="button" id="confirmarBtn" class="btn-whatsapp-hero" style="width: 100%; justify-content: center;">
+                <i class="bx bxl-whatsapp"></i> Confirmar & Enviar no WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <div id="modalCliente" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <span class="close" onclick="fecharModal('modalCliente')">×</span>
+            <h2 style="font-size: 1.35rem; margin-bottom: 12px;">Como podemos te chamar?</h2>
+            <div style="margin-bottom: 16px;">
+                <input type="text" id="nomeCliente" placeholder="Digite seu nome completo" required>
+            </div>
+            <button type="button" id="btnClienteContinuar" class="btn-autonomous" style="width: 100%; justify-content: center;">Continuar</button>
+        </div>
+    </div>
+
+    <div id="modalProdutos" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <span class="close" onclick="fecharModal('modalProdutos')">×</span>
+            <h2 style="font-size: 1.35rem; margin-bottom: 4px;">Adicionar produtos para cuidar em casa?</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Pomadas de alta fixação, óleos e balms com desconto exclusivo:</p>
+            
+            <div id="produtosContainer" class="prod-grid"></div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#0b0d11; border-radius:var(--radius-sm); margin-bottom:16px;">
+                <span style="color:var(--text-muted); font-size:0.9rem;">Total em Produtos:</span>
+                <strong id="prodTotal" style="color:var(--gold-light); font-size:1.1rem;">R$ 0,00</strong>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="btnProdutosPular" class="btn-autonomous" style="background:#1e242d; color:#cbd5e1; flex:1; justify-content:center;">Pular</button>
+                <button type="button" id="btnProdutosContinuar" class="btn-autonomous" style="flex:1; justify-content:center;">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalRAClub" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <div style="margin-bottom: 16px;">
+                <span class="eyebrow" style="margin-bottom: 4px;">Assinatura Mensal</span>
+                <h2 style="font-size: 1.35rem;">Clube VIP • Cortes Ilimitados</h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Economize mantendo o corte sempre no padrão:</p>
+                <ul class="path-features-list" style="margin-top: 12px;">
+                    <li><i class="bx bx-check"></i> Cortes e barba ilimitados durante o mês</li>
+                    <li><i class="bx bx-check"></i> 10% de desconto em toda a linha de produtos</li>
+                    <li><i class="bx bx-check"></i> Prioridade máxima de agendamento</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" id="btnRAJaMembro" class="btn-autonomous" style="background:#1e242d; color:#cbd5e1; flex:1; justify-content:center;">Já sou membro</button>
+                <button type="button" id="btnRANao" class="btn-autonomous" style="background:#1e242d; color:#cbd5e1; flex:1; justify-content:center;">Agora não</button>
+                <a id="btnRAAssinar" class="btn-autonomous" href="#contact" style="flex:1; justify-content:center;">Quero Assinar</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAvaliacao" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true" style="text-align: center;">
+            <span class="close" onclick="fecharModal('modalAvaliacao')">×</span>
+            <div style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 10px;">★ ★ ★ ★ ★</div>
+            <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Gostou do nosso atendimento?</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Sua avaliação no Google nos ajuda a continuar elevando o padrão dos nossos serviços!
+            </p>
+            <a id="btnAvaliarGoogle" href="https://google.com" target="_blank" class="btn-autonomous" style="justify-content: center; width: 100%;">
+                <i class="bx bxs-star"></i> Deixar Avaliação 5 Estrelas no Google
+            </a>
+        </div>
+    </div>
+
+    <div id="servicoModal" class="modal" aria-hidden="true" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 style="font-size: 1.2rem; color: #fff;">Selecionar Serviço</h3>
+                <span class="close" onclick="fecharModal('servicoModal')">×</span>
+            </div>
+            <div style="margin-bottom: 14px;">
+                <input id="svcSearch" type="search" placeholder="Buscar serviço..." style="width:100%;">
+            </div>
+            <div id="servicoLista" style="max-height: 240px; overflow-y: auto; margin-bottom: 16px;"></div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="servicoCancelar" class="btn-autonomous" style="background:#1e242d; color:#cbd5e1; flex:1; justify-content:center;">Cancelar</button>
+                <button type="button" id="servicoConfirmarWpp" class="btn-autonomous" style="flex:1; justify-content:center;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="./Barbearia_files/script.js"></script>
+</body>
 </html>

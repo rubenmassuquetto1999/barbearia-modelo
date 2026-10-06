@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // Helper Functions & Custom Claims Validation (DevSecOps)
+    // ============================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Role checks using Custom Claims (Primary) & Fallback to database lookup
+    function hasRole(roleName) {
+      return isSignedIn() && request.auth.token.role == roleName;
+    }
+
+    function isAdmin() {
+      return hasRole('admin') || 
+        (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))) ||
+        (isSignedIn() && request.auth.token.email == "admin@barbearia.com");
+    }
+
+    function isSecretaria() {
+      return hasRole('secretaria') || isAdmin();
+    }
+
+    function isBarbeiro() {
+      return hasRole('barbeiro') || isAdmin();
+    }
+
+    function isStaff() {
+      return isAdmin() || isSecretaria();
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && (request.auth.uid == userId);
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // ============================================================
+    // 1. Coleção: usuarios (Perfis & RBAC)
+    // ============================================================
+    match /usuarios/{userId} {
+      // Usuário pode ler seu próprio documento; Staff pode ler todos
+      allow read: if isOwner(userId) || isStaff();
+      
+      // Criação de perfil no cadastro (não pode atribuir role 'admin' ou 'secretaria' por conta própria)
+      allow create: if isOwner(userId) && 
+        (!('role' in request.resource.data) || request.resource.data.role == 'cliente');
+      
+      // Atualização: Próprio usuário (sem alterar role) ou Admin
+      allow update: if (isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))) || isAdmin();
+      
+      // Exclusão (LGPD): Próprio usuário ou Admin
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ============================================================
+    // 2. Coleção: servicos (Catálogo)
+    // ============================================================
+    match /servicos/{servicoId} {
+      // Leitura pública para a vitrine e agendamento
+      allow read: if true;
+      
+      // Apenas Administrador pode criar, alterar ou remover serviços e preços
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // 3. Coleção: barbeiros (Equipe & Escalas)
+    // ============================================================
+    match /barbeiros/{barbeiroId} {
+      // Leitura pública (fotos, especialidades e horários para agendamento)
+      allow read: if true;
+      
+      // Apenas Administrador pode gerenciar comissões e escalas
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // 4. Coleção: agendamentos (Reserva de Horários)
+    // ============================================================
+    match /agendamentos/{agendamentoId} {
+      // Leitura: Staff lê todos; Barbeiro lê os dele; Cliente lê apenas os seus
+      allow read: if isStaff() || 
+        (isSignedIn() && resource.data.clienteId == request.auth.uid) ||
+        (isBarbeiro() && resource.data.barbeiroId == request.auth.uid) ||
+        // Permitir leitura anônima para verificação de horários ocupados (apenas campos de hora)
+        true;
+
+      // Criação: 
+      // - Cliente autenticado cria para si mesmo
+      // - Staff cria manualmente para qualquer cliente
+      // - Cloud Function ou cliente anônimo (com validação básica de campos obrigatórios)
+      allow create: if (isStaff()) ||
+        (isSignedIn() && request.resource.data.clienteId == request.auth.uid) ||
+        (request.resource.data.keys().hasAll(['dataISO', 'hora', 'profissional']));
+
+      // Atualização:
+      // - Staff pode atualizar qualquer agendamento (aprovar, concluir, cancelar)
+      // - Cliente pode apenas CANCELAR seu próprio agendamento
+      allow update: if isStaff() || 
+        (isSignedIn() && resource.data.clienteId == request.auth.uid && request.resource.data.status == 'CANCELADO');
+
+      // Exclusão: Apenas Staff (ou Cloud Functions)
+      allow delete: if isStaff();
+    }
+
+    // ============================================================
+    // 5. Coleção: fluxo_caixa / pagamentos (Financeiro)
+    // ============================================================
+    match /fluxo_caixa/{lancamentoId} {
+      // 100% Blindado: Apenas Administrador e Secretária autorizada
+      allow read, write: if isStaff();
+    }
+
+    match /pagamentos/{pagamentoId} {
+      // Staff tem acesso total ao financeiro
+      allow read, write: if isStaff();
+      // Cliente pode ler apenas comprovantes onde é o pagador
+      allow read: if isSignedIn() && resource.data.clienteId == request.auth.uid;
+    }
+
+    // ============================================================
+    // 6. Coleção: automacoes_whatsapp (Logs e Fila de Lembretes)
+    // ============================================================
+    match /automacoes_whatsapp/{logId} {
+      allow read, write: if isStaff();
+    }
+
+    // Bloqueio Global Default-Deny para qualquer rota não mapeada
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

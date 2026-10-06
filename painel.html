@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Barbearia — Painel de Gestão & Administração</title>
+    <meta name="description" content="Painel de controle administrativo, agenda em tempo real, gestão de clientes, equipe de barbeiros, fluxo financeiro e automação WhatsApp." />
+    <meta property="og:title" content="Barbearia — Painel de Gestão" />
+    <meta property="og:description" content="Painel restrito para administração e controle da barbearia." />
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .badge-role {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-CONFIRMADO { background: #e0f2fe; color: #0369a1; }
+        .status-CONCLUIDO { background: #dcfce7; color: #15803d; }
+        .status-CANCELADO { background: #fee2e2; color: #b91c1c; }
+        .status-NAO_COMPARECEU { background: #fef3c7; color: #b45309; }
+        .status-PENDENTE { background: #f3f4f6; color: #4b5563; }
+        .tabs-in-header {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+        }
+        .btn-vitrine-link {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .btn-vitrine-link:hover {
+            background: rgba(255,255,255,0.2);
+            color: #f59e0b;
+        }
+        .btn-logout {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+        #accessDeniedBanner {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 99999;
+            color: #fff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Access Denied Guard Overlay -->
+    <div id="accessDeniedBanner">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:12px; padding:36px; max-width:480px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <div style="font-size:3rem; color:#f59e0b; margin-bottom:12px;"><i class='bx bx-shield-x'></i></div>
+            <h2 style="font-size:1.4rem; margin-bottom:10px;">Área Restrita da Administração</h2>
+            <p style="color:#94a3b8; font-size:0.95rem; margin-bottom:24px;">
+                Este painel de gestão é de acesso exclusivo para o Dono, Secretária e Barbeiros autorizados.
+            </p>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                <button type="button" id="btnOpenAdminLoginDirect" style="background:#d97706; color:#fff; border:0; padding:12px 20px; border-radius:6px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    <i class='bx bx-log-in'></i> Fazer Login Admin
+                </button>
+                <a href="/" style="background:#334155; color:#fff; text-decoration:none; padding:12px 20px; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                    <i class='bx bx-store'></i> Voltar para a Vitrine
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-container"></div>
+
+    <header>
+        <nav>
+            <a href="/" class="logo" title="Voltar à Vitrine Pública">
+                <img src="./assets/logo-ra-baberaria1.png" alt="Logo" class="logo-mark">
+                Barbearia — Painel
+            </a>
+
+            <div class="tabs-in-header">
+                <button type="button" class="tab-btn active" data-tab="agenda"><i class="bx bx-calendar"></i> Agenda</button>
+                <button type="button" class="tab-btn" data-tab="clientes"><i class="bx bx-user-pin"></i> Clientes</button>
+                <button type="button" class="tab-btn" data-tab="barbeiros"><i class="bx bx-cut"></i> Barbeiros</button>
+                <button type="button" class="tab-btn" data-tab="servicos"><i class="bx bx-list-check"></i> Serviços</button>
+                <button type="button" class="tab-btn" data-tab="reports"><i class="bx bx-bar-chart"></i> Financeiro</button>
+                <button type="button" class="tab-btn" data-tab="automacao"><i class="bx bxl-whatsapp"></i> WhatsApp</button>
+            </div>
+
+            <div id="userHeaderSection" style="margin-left:auto; display:flex; align-items:center; gap:12px">
+                <a href="/" class="btn-vitrine-link" title="Visualizar página pública da barbearia">
+                    <i class="bx bx-store-alt"></i> Ver Vitrine
+                </a>
+                <span id="currentUserDisplay" style="font-size:0.85rem; font-weight:500; display:flex; align-items:center; gap:6px; color:#e2e8f0;">
+                    <i class='bx bx-user-circle' style="font-size:1.2rem;"></i> <span id="currentUserName">Rodrigo (Admin)</span>
+                    <span id="currentUserRole" class="badge-role">ADMIN</span>
+                </span>
+                <button id="switchUserBtn" class="btn btn-sm btn-light" title="Trocar de Conta">
+                    <i class='bx bx-refresh'></i> Trocar
+                </button>
+                <button id="logoutBtn" class="btn-logout" title="Sair do painel administrativo">
+                    <i class='bx bx-log-out'></i> Sair
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- TAB 1: AGENDA -->
+    <main id="agendaMain" class="active">
+        <div class="toolbar">
+            <div class="field"><label for="profissionalSelect">Profissional</label><select id="profissionalSelect"></select></div>
+            <div class="field"><label for="dataFiltro">Data</label><input type="date" id="dataFiltro" /></div>
+            <div class="field"><label for="horaFiltro">Hora (opcional)</label><select id="horaFiltro">
+                    <option value="">Todas</option>
+                </select></div>
+            <div class="field"><button id="buscarBtn" class="btn btn-primary"><i class='bx bx-search'></i> Buscar</button></div>
+            <div class="field">
+                <div class="actions">
+                    <button id="novoAgendamentoDirectBtn" class="btn btn-success"><i class='bx bx-plus'></i> Novo Agendamento</button>
+                    <button id="bloquearBtn" class="btn btn-del"><i class='bx bx-block'></i> Bloquear Horário</button>
+                    <button id="desbloquearBtn" class="btn btn-light"><i class='bx bx-reset'></i> Reativar</button>
+                </div>
+            </div>
+        </div>
+        <div id="agenda-grid"><!-- horários renderizados via JS --></div>
+    </main>
+
+    <!-- TAB 2: CLIENTES -->
+    <main id="clientesMain">
+        <div class="grid">
+            <div class="left-column">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Cadastro de Cliente</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="clientForm" class="form-grid">
+                            <div class="form-row">
+                                <div class="field"><label for="clientName">Nome *</label><input type="text"
+                                        id="clientName" required placeholder="Nome completo do cliente"></div>
+                                <div class="field"><label for="clientPhone">Telefone</label><input type="tel"
+                                        id="clientPhone" placeholder="(XX) XXXXX-XXXX" maxlength="15"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><label for="clientType">Tipo</label><select id="clientType">
+                                        <option value="cliente">Cliente Avulso</option>
+                                        <option value="plano_jc">Plano RA (Assinatura)</option>
+                                    </select></div>
+                                <div class="field hidden-block" id="clientValueField"><label for="clientValue">Valor
+                                        Mensal (R$)</label><input type="number" id="clientValue" step="0.01"></div>
+                                <div class="field hidden-block" id="clientPayDayField"><label for="clientPayDay">Dia
+                                        Pgto.</label><input type="number" id="clientPayDay" min="1" max="31"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><label for="clientStatus">Status</label><select id="clientStatus">
+                                        <option value="ativo">Ativo</option>
+                                        <option value="pausado">Pausado</option>
+                                        <option value="inativo">Inativo</option>
+                                    </select></div>
+                                <div class="field"><label>&nbsp;</label><button type="submit" id="saveClientBtn"
+                                        class="btn btn-primary">Salvar Cliente</button></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px;">
+                    <div class="card-header">
+                        <h3>Lista de Clientes</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-list-controls">
+                            <div class="search-wrapper">
+                                <i class='bx bx-search'></i>
+                                <input type="search" id="clientSearch" placeholder="Pesquisar por nome ou telefone...">
+                            </div>
+                            <div class="client-filter-tabs">
+                                <button class="filter-tab-btn active" data-filter="all">Todos</button>
+                                <button class="filter-tab-btn" data-filter="cliente">Cliente Avulso</button>
+                                <button class="filter-tab-btn" data-filter="plano_jc">Plano RA</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Telefone</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="kpis">
+                    <div class="kpi">
+                        <div class="kpi-label">Membros Ativos (Plano)</div>
+                        <div id="activeMembers" class="kpi-value">0</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="kpi-label">Receita Recorrente</div>
+                        <div id="estimatedRevenue" class="kpi-value">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Pagamentos Recorrentes do Mês</h3>
+                    </div>
+                    <div class="card-body-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Cliente</th>
+                                    <th>Valor</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="payments-total">Total do mês: <span id="monthlyTotal">R$ 0,00</span></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TAB 3: BARBEIROS -->
+    <main id="barbeirosMain">
+        <div class="grid">
+            <div class="left-column">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Cadastrar / Gerenciar Barbeiro</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="barbeiroForm" class="form-grid">
+                            <input type="hidden" id="barbeiroEditId">
+                            <div class="form-row">
+                                <div class="field"><label for="barbNome">Nome do Barbeiro *</label><input type="text" id="barbNome" required placeholder="Ex: Rodrigo Barbeiro"></div>
+                                <div class="field"><label for="barbTelefone">WhatsApp / Telefone</label><input type="tel" id="barbTelefone" placeholder="(11) 99999-8888"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><label for="barbEspecialidade">Especialidade / Foco</label><input type="text" id="barbEspecialidade" placeholder="Ex: Degradê, Barba Terapia, Luzes"></div>
+                                <div class="field"><label for="barbComissao">Comissão (%) *</label><input type="number" id="barbComissao" min="0" max="100" value="50" required></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><label for="barbInicio">Início do Expediente</label><input type="time" id="barbInicio" value="09:00"></div>
+                                <div class="field"><label for="barbFim">Fim do Expediente</label><input type="time" id="barbFim" value="19:00"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><button type="submit" class="btn btn-primary"><i class="bx bx-save"></i> Salvar Barbeiro</button></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="right-column">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Equipe de Barbeiros & Escalas</h3>
+                    </div>
+                    <div class="card-body-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Especialidade</th>
+                                    <th>Comissão</th>
+                                    <th>Horário</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="barbeirosTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TAB 4: SERVIÇOS -->
+    <main id="servicosMain">
+        <div class="grid">
+            <div class="left-column">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Cadastrar Serviço</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="servicoForm" class="form-grid">
+                            <input type="hidden" id="servicoEditId">
+                            <div class="form-row">
+                                <div class="field"><label for="svcNovoNome">Nome do Serviço *</label><input type="text" id="svcNovoNome" required placeholder="Ex: Corte Degradê + Barba"></div>
+                                <div class="field"><label for="svcNovoCategoria">Categoria</label><select id="svcNovoCategoria">
+                                    <option value="Corte">Corte</option>
+                                    <option value="Barba">Barba</option>
+                                    <option value="Química">Química / Luzes</option>
+                                    <option value="Combo">Combo</option>
+                                    <option value="Estética">Estética</option>
+                                    <option value="Especial">Especial</option>
+                                </select></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><label for="svcNovoPreco">Preço (R$) *</label><input type="number" id="svcNovoPreco" step="0.01" required placeholder="0.00"></div>
+                                <div class="field"><label for="svcNovoDuracao">Duração (Minutos) *</label><input type="number" id="svcNovoDuracao" min="10" max="240" step="5" value="30" required></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="field"><button type="submit" class="btn btn-primary"><i class="bx bx-save"></i> Salvar Serviço</button></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="right-column">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Catálogo de Serviços Ativos</h3>
+                    </div>
+                    <div class="card-body-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Serviço</th>
+                                    <th>Categoria</th>
+                                    <th>Preço</th>
+                                    <th>Duração</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicosTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TAB 5: RELATÓRIOS & FINANCEIRO -->
+    <main id="reportsMain">
+        <div class="kpis">
+            <div class="kpi">
+                <div class="kpi-label">Faturamento Bruto</div>
+                <div id="kpiBruto" class="kpi-value">R$ 0,00</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Comissões Barbeiros</div>
+                <div id="kpiComissoes" class="kpi-value" style="color:#ea580c">R$ 0,00</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Líquido da Barbearia</div>
+                <div id="kpiLiquido" class="kpi-value" style="color:#16a34a">R$ 0,00</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Ticket Médio</div>
+                <div id="kpiTicket" class="kpi-value">R$ 0,00</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3>Relatório Financeiro e Comissões</h3>
+            </div>
+            <div class="card-body">
+                <div class="reports-toolbar" style="padding:0; border:0; margin-bottom: 24px;">
+                    <div class="field"><label for="relProf">Profissional</label><select id="relProf"></select></div>
+                    <div class="field"><label for="relDe">De</label><input type="date" id="relDe"></div>
+                    <div class="field"><label for="relAte">Até</label><input type="date" id="relAte"></div>
+                    <div class="field">
+                        <div class="actions">
+                            <button id="relGerarBtn" class="btn btn-primary"><i class="bx bx-bar-chart"></i> Gerar</button>
+                            <button id="exportCsv" class="btn btn-light"><i class="bx bx-download"></i> CSV</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Profissional</th>
+                            <th>Cliente</th>
+                            <th>Serviço</th>
+                            <th>Forma</th>
+                            <th>Valor Bruto</th>
+                            <th>Comissão Barbeiro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="relDetalheTbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Faturamento por Serviço</h3>
+                </div>
+                <div class="card-body" style="display:flex; flex-direction:column; align-items:center;">
+                    <div style="position:relative; max-width:360px; width:100%;">
+                        <canvas id="reportsChart"></canvas>
+                    </div>
+                    <div id="reportsChartLegend" class="chart-legend"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Fechamento de Comissões por Barbeiro</h3>
+                </div>
+                <div class="card-body-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Barbeiro</th>
+                                <th>Atendimentos</th>
+                                <th>Total Gerado</th>
+                                <th>Comissão a Pagar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comissoesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TAB 6: AUTOMAÇÃO WHATSAPP -->
+    <main id="automacaoMain">
+        <div class="kpis">
+            <div class="kpi">
+                <div class="kpi-label">API WhatsApp</div>
+                <div class="kpi-value" style="font-size:1.4rem; color:#16a34a"><i class='bx bxl-whatsapp'></i> Conectado</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Lembretes Disparados</div>
+                <div id="kpiLembretesTotal" class="kpi-value">0</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Taxa de Confirmação</div>
+                <div class="kpi-value" style="color:#0284c7">98.5%</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Fila & Histórico de Disparos de WhatsApp</h3>
+                <button id="dispararLembretesEmMassaBtn" class="btn btn-success btn-sm"><i class='bx bx-send'></i> Disparar Lembretes de Hoje</button>
+            </div>
+            <div class="card-body-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Cliente</th>
+                            <th>Telefone</th>
+                            <th>Tipo</th>
+                            <th>Mensagem Enviada</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="automacaoTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL GLOBAL -->
+    <div class="modal-overlay" id="mainModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle"></h3>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter"></div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
